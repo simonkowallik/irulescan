@@ -1,5 +1,9 @@
 # irulescan
 
+[![Test Build](https://github.com/simonkowallik/irulescan/actions/workflows/test.yaml/badge.svg)](https://github.com/simonkowallik/irulescan/actions/workflows/test.yaml)
+![Docker Image Size (latest by date)](https://img.shields.io/docker/image-size/simonkowallik/irulescan)
+
+
 `irulescan` is a tool to scan iRules for unexpected/unsafe expressions that may have undesirable effects like double substitution.
 
 `irulescan` would not exist without [tclscan](https://github.com/aidanhs/tclscan).
