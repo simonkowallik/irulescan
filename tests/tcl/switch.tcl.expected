@@ -1,0 +1,4 @@
+DANGEROUS: missing options terminator at `--` in `switch "abc" {    abc {}    default {expr 2}}`
+WARNING: Cannot scan switch, not implemented (TODO, known-issue). at `` in `switch "abc" {    abc {}    default {expr 2}}`
+WARNING: badly formed command at `switch` in `switch "abc" {    abc {}    default {expr 2}}`
+

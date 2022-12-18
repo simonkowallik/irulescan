@@ -1,0 +1,9 @@
+DANGEROUS: missing options terminator `--` permits argument injection at `exp_fail_100` in `regexp -about -expanded -indices -line -linestop -lineanchor -nocase -all -inline -start <index> exp_fail_100 string ?matchVar? ?subMatchVar subMatchVar ...?`
+DANGEROUS: missing options terminator `--` permits argument injection at `exp_fail_200` in `regsub -all -expanded -line -linestop -lineanchor -nocase -start <index> exp_fail_200 string subSpec ?varName?`
+DANGEROUS: missing options terminator `--` permits argument injection at `exp_fail_300` in `regexp -about -expanded -indices -line -linestop -lineanchor -nocase -all -inline exp_fail_300 string ?matchVar? ?subMatchVar subMatchVar ...?`
+DANGEROUS: missing options terminator `--` permits argument injection at `exp_fail_400` in `regsub -all -expanded -line -linestop -lineanchor -nocase exp_fail_400 string subSpec ?varName?`
+DANGEROUS: missing options terminator `--` permits argument injection at `exp_fail_500` in `regexp -about -expanded -indices -line -linestop -lineanchor -nocase -all -inline exp_fail_500 string ?matchVar? ?subMatchVar subMatchVar ...?`
+DANGEROUS: missing options terminator `--` permits argument injection at `exp_fail_600` in `regsub -all -expanded -line -linestop -lineanchor -nocase exp_fail_600 string subSpec ?varName?`
+DANGEROUS: missing options terminator `--` permits argument injection at `exp_fail_700` in `regexp exp_fail_700 string ?matchVar? ?subMatchVar subMatchVar ...?`
+DANGEROUS: missing options terminator `--` permits argument injection at `exp_fail_800` in `regsub exp_fail_800 string subSpec ?varName?`
+

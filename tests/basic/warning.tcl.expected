@@ -1,0 +1,4 @@
+WARNING: Unquoted expr at `1` in `expr 1 + 1`
+WARNING: Unquoted expr at `+` in `expr 1 + 1`
+WARNING: Unquoted expr at `1` in `expr 1 + 1`
+

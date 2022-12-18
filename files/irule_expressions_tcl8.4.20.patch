@@ -1,0 +1,184 @@
+diff -ruN tcl8.4.20.orig/generic/tclParseExpr.c tcl8.4.20/generic/tclParseExpr.c
+--- tcl8.4.20.orig/generic/tclParseExpr.c	2012-11-19 17:27:16.000000000 +0100
++++ tcl8.4.20/generic/tclParseExpr.c	2022-12-10 10:10:50.232932347 +0100
+@@ -1812,12 +1812,92 @@
+ 	    parsePtr->term = infoPtr->next;
+ 	    return TCL_OK;
+ 
++/*
++ * Adding iRule specific expressions. Most are non-functional.
++ * The goal is to only make them appear legal as the result
++ * of the expression does not matter to irulescan.
++ */
++	case 'o':
++	    if ((src[1] == 'r') && ((infoPtr->lastChar - src) > 1)) {
++		infoPtr->lexeme = OR;
++		infoPtr->size = 2;
++		infoPtr->next = src+2;
++		parsePtr->term = infoPtr->next;
++		return TCL_OK;
++	    } else {
++		goto checkFuncName;
++	    }
++
++	case 'a':
++	    if (
++			(src[1] == 'n') &&
++			(src[2] == 'd') &&
++			((infoPtr->lastChar - src) > 1)
++		) {
++		infoPtr->lexeme = AND;
++		infoPtr->size = 3;
++		infoPtr->next = src+3;
++		parsePtr->term = infoPtr->next;
++		return TCL_OK;
++	    } else {
++		goto checkFuncName;
++	    }
++
+ 	case '~':
+ 	    infoPtr->lexeme = BIT_NOT;
+ 	    return TCL_OK;
+ 
++	case 'c':
++	    if (
++			(src[1] == 'o') &&
++			(src[2] == 'n') &&
++			(src[3] == 't') &&
++			(src[4] == 'a') &&
++			(src[5] == 'i') &&
++			(src[6] == 'n') &&
++			(src[7] == 's') &&
++		 	((infoPtr->lastChar - src) > 1)
++		 ) {
++		infoPtr->lexeme = STREQ;
++		infoPtr->size = 8;
++		infoPtr->next = src+8;
++		parsePtr->term = infoPtr->next;
++		return TCL_OK;
++	    } else {
++		goto checkFuncName;
++	    }
++
+ 	case 'e':
+-	    if ((src[1] == 'q') && ((infoPtr->lastChar - src) > 1)) {
++	    if (
++			(src[1] == 'q') &&
++			(src[2] == 'u') &&
++			(src[3] == 'a') &&
++			(src[4] == 'l') &&
++			(src[5] == 's') &&
++		 	((infoPtr->lastChar - src) > 1)
++		 ) {
++		infoPtr->lexeme = STREQ;
++		infoPtr->size = 6;
++		infoPtr->next = src+6;
++		parsePtr->term = infoPtr->next;
++		return TCL_OK;
++	    } else if (
++			(src[1] == 'n') &&
++			(src[2] == 'd') &&
++			(src[3] == 's') &&
++			(src[4] == '_') &&
++			(src[5] == 'w') &&
++			(src[6] == 'i') &&
++			(src[7] == 't') &&
++			(src[8] == 'h') &&
++		 	((infoPtr->lastChar - src) > 1)
++		 ) {
++		infoPtr->lexeme = STREQ;
++		infoPtr->size = 9;
++		infoPtr->next = src+9;
++		parsePtr->term = infoPtr->next;
++		return TCL_OK;
++	    } else if ((src[1] == 'q') && ((infoPtr->lastChar - src) > 1)) {
+ 		infoPtr->lexeme = STREQ;
+ 		infoPtr->size = 2;
+ 		infoPtr->next = src+2;
+@@ -1827,8 +1907,85 @@
+ 		goto checkFuncName;
+ 	    }
+ 
++	case 's':
++	    if (
++			(src[1] == 't') &&
++			(src[2] == 'a') &&
++			(src[3] == 'r') &&
++			(src[4] == 't') &&
++			(src[5] == 's') &&
++			(src[6] == '_') &&
++			(src[7] == 'w') &&
++			(src[8] == 'i') &&
++			(src[9] == 't') &&
++			(src[10] == 'h') &&
++		 	((infoPtr->lastChar - src) > 1)
++		 ) {
++		infoPtr->lexeme = STREQ;
++		infoPtr->size = 11;
++		infoPtr->next = src+11;
++		parsePtr->term = infoPtr->next;
++		return TCL_OK;
++	    } else {
++		goto checkFuncName;
++	    }
++
++	case 'm':
++	    if (
++			(src[1] == 'a') &&
++			(src[2] == 't') &&
++			(src[3] == 'c') &&
++			(src[4] == 'h') &&
++			(src[5] == 'e') &&
++			(src[6] == 's') &&
++			(src[7] == '_') &&
++			(src[8] == 'g') &&
++			(src[9] == 'l') &&
++			(src[10] == 'o') &&
++			(src[11] == 'b') &&
++		 	((infoPtr->lastChar - src) > 1)
++		 ) {
++		infoPtr->lexeme = STREQ;
++		infoPtr->size = 12;
++		infoPtr->next = src+12;
++		parsePtr->term = infoPtr->next;
++		return TCL_OK;
++		 } else if (
++			(src[1] == 'a') &&
++			(src[2] == 't') &&
++			(src[3] == 'c') &&
++			(src[4] == 'h') &&
++			(src[5] == 'e') &&
++			(src[6] == 's') &&
++			(src[7] == '_') &&
++			(src[8] == 'r') &&
++			(src[9] == 'e') &&
++			(src[10] == 'g') &&
++			(src[11] == 'e') &&
++			(src[12] == 'x') &&
++		 	((infoPtr->lastChar - src) > 1)
++		 ) {
++		infoPtr->lexeme = STREQ;
++		infoPtr->size = 13;
++		infoPtr->next = src+13;
++		parsePtr->term = infoPtr->next;
++		return TCL_OK;
++	    } else {
++		goto checkFuncName;
++	    }
++
+ 	case 'n':
+-	    if ((src[1] == 'e') && ((infoPtr->lastChar - src) > 1)) {
++	    if (
++			(src[1] == 'o') &&
++			(src[2] == 't') &&
++			((infoPtr->lastChar - src) > 1)
++		) {
++	    infoPtr->lexeme = NOT;
++		infoPtr->size = 3;
++		infoPtr->next = src+3;
++		parsePtr->term = infoPtr->next;
++		return TCL_OK;
++	    } else if ((src[1] == 'e') && ((infoPtr->lastChar - src) > 1)) {
+ 		infoPtr->lexeme = STRNEQ;
+ 		infoPtr->size = 2;
+ 		infoPtr->next = src+2;

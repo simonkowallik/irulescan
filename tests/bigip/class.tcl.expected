@@ -1,0 +1,9 @@
+DANGEROUS: missing options terminator `--` permits argument injection at `fail_100` in `class search -index -name -value -element -all fail_100 equals datagroup_fail`
+DANGEROUS: missing options terminator `--` permits argument injection at `fail_100` in `class  match -index -name -value -element -all fail_100 equals datagroup_fail`
+DANGEROUS: missing options terminator `--` permits argument injection at `fail_200` in `class search fail_200 equals datagroup_fail`
+DANGEROUS: missing options terminator `--` permits argument injection at `fail_200` in `class  match fail_200 equals datagroup_fail`
+DANGEROUS: missing options terminator `--` permits argument injection at `fail_300` in `class nextelement -index -name -value fail_300 <search_id>`
+DANGEROUS: missing options terminator `--` permits argument injection at `fail_300` in `class element -name -value fail_300 <class>`
+DANGEROUS: missing options terminator `--` permits argument injection at `fail_400` in `class nextelement fail_400 <search_id>`
+DANGEROUS: missing options terminator `--` permits argument injection at `fail_400` in `class element fail_400 <class>`
+

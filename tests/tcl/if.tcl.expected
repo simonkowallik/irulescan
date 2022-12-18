@@ -1,0 +1,12 @@
+WARNING: Unquoted expr at `1` in `expr 1`
+WARNING: Unquoted expr at `2` in `expr 2`
+WARNING: Unquoted expr at `3` in `expr 3`
+WARNING: Unquoted expr at `10` in `expr 10`
+WARNING: Unquoted expr at `20` in `expr 20`
+WARNING: Unquoted expr at `30` in `expr 30`
+WARNING: Unquoted expr at `100` in `expr 100`
+WARNING: Unquoted expr at `200` in `expr 200`
+WARNING: Unquoted expr at `300` in `expr 300`
+WARNING: Unquoted expr at `400` in `expr 400`
+WARNING: badly formed command at `else` in `else`
+
