@@ -1,0 +1,38 @@
+name: Test Build
+
+on:
+  workflow_dispatch:
+  release:
+    types: [released]
+  push:
+    branches:
+      - "main"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build container image
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          platforms: linux/amd64
+          push: false
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: irulescan:latest
+
+      - name: Test
+        run: |
+          docker run --rm -v $PWD/tests/basic:/scandir irulescan:latest > results.yaml
+          diff results.yaml tests/basic.yaml
