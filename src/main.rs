@@ -2,7 +2,7 @@
 
 extern crate rustc_serialize;
 extern crate docopt;
-extern crate tclscan;
+extern crate irulescan;
 
 use std::error::Error;
 use std::fs;
@@ -10,11 +10,11 @@ use std::io::prelude::*;
 use std::io;
 use std::path::Path;
 use docopt::Docopt;
-use tclscan::rstcl;
-use tclscan::CheckResult;
+use irulescan::rstcl;
+use irulescan::CheckResult;
 
-const USAGE: &'static str = "Usage: tclscan check [--no-warn] ( - | <path> )
-    tclscan parsestr ( - | <script-str> )";
+const USAGE: &'static str = "Usage: irulescan check [--no-warn] ( - | <path> )
+    irulescan parsestr ( - | <script-str> )";
 
 pub fn main() {
     let args = Docopt::new(USAGE)
@@ -60,7 +60,7 @@ pub fn main() {
     let script = &script_in;
     match (cmd_check, cmd_parsestr) {
         (true, false) => {
-            let mut results = tclscan::scan_script(script);
+            let mut results = irulescan::scan_script(script);
             if flag_no_warn {
                 results = results.into_iter().filter(|r|
                     match r { &CheckResult::Warn(_, _, _) => false,  _ => true }

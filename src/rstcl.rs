@@ -74,7 +74,7 @@ impl<'b, 'c: 'b> Iterator for TclTokenIter<'b, 'c> {
         let ret: Option<&'b TclToken<'c>> = match self.token.traverse(self.cur-1) {
             (0, Some(tok)) => Some(tok),
             (0, None) => None,
-            x => panic!("Invalid traverse return {:?}, iterator called after finish?", x),
+            x => panic!("ERROR: Invalid traverse return {:?}, iterator called after finish?", x),
         };
         return ret;
     }
@@ -84,9 +84,9 @@ impl<'b, 'c: 'b> Iterator for TclTokenIter<'b, 'c> {
 /// Returns: a parse structure and the remaining string.
 ///
 /// ```
-/// use tclscan::rstcl::{TclParse,TclToken};
-/// use tclscan::rstcl::TokenType::{SimpleWord,Word,Variable,Text,Command};
-/// use tclscan::rstcl::parse_command;
+/// use irulescan::rstcl::{TclParse,TclToken};
+/// use irulescan::rstcl::TokenType::{SimpleWord,Word,Variable,Text,Command};
+/// use irulescan::rstcl::parse_command;
 /// assert!(parse_command("a b $c [d]") == (TclParse {
 ///     comment: Some(""), command: Some("a b $c [d]"),
 ///     tokens: vec![
@@ -148,8 +148,8 @@ pub fn parse_command<'a>(string: &'a str) -> (TclParse<'a>, &'a str) {
 /// Returns: a list of parse structures representing the entire script
 ///
 /// ```
-/// use tclscan::rstcl::TclParse;
-/// use tclscan::rstcl::parse_script;
+/// use irulescan::rstcl::TclParse;
+/// use irulescan::rstcl::parse_script;
 /// assert!(parse_script(";;;   ;    ;") == vec![
 ///     TclParse { comment: Some(""), command: Some(";"), tokens: vec![] },
 ///     TclParse { comment: Some(""), command: Some(";"), tokens: vec![] },
@@ -175,9 +175,9 @@ pub fn parse_script<'a>(string: &'a str) -> Vec<TclParse<'a>> {
 /// Returns: a parse structure and the remaining script.
 ///
 /// ```
-/// use tclscan::rstcl::{TclParse,TclToken};
-/// use tclscan::rstcl::TokenType::{SubExpr,Text,Variable,Command,Operator};
-/// use tclscan::rstcl::parse_expr;
+/// use irulescan::rstcl::{TclParse,TclToken};
+/// use irulescan::rstcl::TokenType::{SubExpr,Text,Variable,Command,Operator};
+/// use irulescan::rstcl::parse_expr;
 /// assert!(parse_expr("[a]+$b+cos([c]+$d)") == (TclParse {
 ///     comment: None, command: None,
 ///     tokens: vec![
@@ -270,10 +270,10 @@ fn parse<'a>(string: &'a str, is_command: bool, is_expr: bool) -> (TclParse<'a>,
             (true, false) => tcl::Tcl_ParseCommand(tcl_interp(), string_ptr, -1, 0, parse_ptr),
             // interp, start, numBytes, parsePtr
             (false, true) => tcl::Tcl_ParseExpr(tcl_interp(), string_ptr, -1, parse_ptr),
-            parse_args => panic!("Don't know how to parse {:?}", parse_args),
+            parse_args => panic!("UNPARSABLE: Don't know how to parse {:?}", parse_args),
         };
         if parsed != 0 {
-            println!("WARN: couldn't parse {}", string);
+            println!("UNPARSABLE: couldn't parse {}", string);
             return (TclParse { comment: Some(""), command: Some(""), tokens: vec![] }, "");
         }
         let tokens = make_tokens(string, string_start, &parse);
@@ -298,7 +298,7 @@ fn parse<'a>(string: &'a str, is_command: bool, is_expr: bool) -> (TclParse<'a>,
             (false, true) => {
                 (TclParse { comment: None, command: None, tokens: tokens }, "")
             },
-            _ => panic!("Unreachable"),
+            _ => panic!("UNPARSABLE: Unreachable"),
         };
 
         tcl::Tcl_FreeParse(parse_ptr);
@@ -368,7 +368,7 @@ fn make_tcltoken<'a>(tcl_token: &tcl::Tcl_Token, tokenval: &'a str, acc: &mut Ve
                 let tok = acc.pop().unwrap();
                 count += match tok.ttype {
                     Text | Bs | Command | Variable => count_tokens(&tok),
-                    _ => panic!("Invalid token type {:?}", tok.ttype),
+                    _ => panic!("ERROR: Invalid token type {:?}", tok.ttype),
                 };
                 subtokens.push(tok);
             }
@@ -394,7 +394,7 @@ fn make_tcltoken<'a>(tcl_token: &tcl::Tcl_Token, tokenval: &'a str, acc: &mut Ve
                     Word | Text | Bs | Command | Variable | SubExpr => {
                         count += count_tokens(&tok)
                     },
-                    _ => panic!("Invalid token {:?}", tok.ttype),
+                    _ => panic!("ERROR: Invalid token {:?}", tok.ttype),
                 }
                 subtokens.push(tok);
             }

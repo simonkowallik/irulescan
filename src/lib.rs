@@ -1,8 +1,4 @@
-#![feature(core)]
-//#![feature(collections)]
 #![feature(libc)]
-#![feature(slice_patterns)]
-//#![feature(str_char)]
 #![feature(rustc_private)]
 
 extern crate libc;
@@ -16,20 +12,8 @@ use self::CheckResult::*; // TODO: why does swapping this line with one below br
 use rstcl::TokenType;
 
 pub mod rstcl;
-#[allow(dead_code, non_upper_case_globals, non_camel_case_types, non_snake_case, raw_pointer_derive)]
+#[allow(dead_code, non_upper_case_globals, non_camel_case_types, non_snake_case)]
 mod tcl;
-
-// http://www.tcl.tk/doc/howto/stubs.html
-// Ideally would use stubs but they seem to not work
-
-// When https://github.com/crabtw/rust-bindgen/issues/89 is fixed
-//#![feature(phase)]
-//#[phase(plugin)] extern crate bindgen;
-//
-//#[allow(dead_code, uppercase_variables, non_camel_case_types)]
-//mod tcl_bindings {
-//    bindgen!("./mytcl.h", match="tcl.h", link="tclstub")
-//}
 
 #[derive(PartialEq)]
 pub enum CheckResult<'a> {
@@ -40,8 +24,8 @@ pub enum CheckResult<'a> {
 impl<'b> fmt::Display for CheckResult<'b> {
     fn fmt<'a>(&'a self, f: &mut fmt::Formatter) -> fmt::Result {
         return match self {
-            &Warn(ctx, msg, line) => write!(f, "WARN: {} at `{}` in `{}`", msg, line, ctx),
-            &Danger(ctx, msg, line) => write!(f, "DANGER: {} at `{}` in `{}`", msg, line, ctx),
+            &Warn(ctx, msg, line) => write!(f, "WARNING: {} at `{}` in `{}`", msg, line, ctx.replace("\n", "")),
+            &Danger(ctx, msg, line) => write!(f, "DANGEROUS: {} at `{}` in `{}`", msg, line, ctx.replace("\n", "")),
         };
     }
 }
@@ -115,32 +99,6 @@ fn is_safe_val(token: &rstcl::TclToken) -> bool {
     return true;
 }
 
-/// Checks if a parsed command is insecure
-///
-/// ```
-/// use tclscan::rstcl::parse_command;
-/// use tclscan::check_command;
-/// use tclscan::CheckResult;
-/// use tclscan::CheckResult::{Danger,Warn};
-/// fn c<'a>(string: &'a str) -> Vec<CheckResult<'a>> {
-///     return check_command(string, &parse_command(string).0.tokens);
-/// }
-/// assert!(c(("puts x")) == vec![]);
-/// assert!(c(("puts [x]")) == vec![]);
-/// assert!(c(("puts [x\n ]")) == vec![]);
-/// assert!(c(("puts [x;y]")) == vec![]);
-/// assert!(c(("puts [x;eval $y]")) == vec![Danger("eval $y", "Dangerous unquoted block", "$y")]);
-/// assert!(c(("puts [;;eval $y]")) == vec![Danger("eval $y", "Dangerous unquoted block", "$y")]);
-/// assert!(c(("puts [eval $x]")) == vec![Danger("eval $x", "Dangerous unquoted block", "$x")]);
-/// assert!(c(("expr {[blah]}")) == vec![]);
-/// assert!(c(("expr \"[blah]\"")) == vec![Danger("expr \"[blah]\"", "Dangerous unquoted expr", "\"[blah]\"")]);
-/// assert!(c(("expr {\\\n0}")) == vec![]);
-/// assert!(c(("expr {[expr \"[blah]\"]}")) == vec![Danger("expr \"[blah]\"", "Dangerous unquoted expr", "\"[blah]\"")]);
-/// assert!(c(("if [info exists abc] {}")) == vec![Warn("if [info exists abc] {}", "Unquoted expr", "[info exists abc]")]);
-/// assert!(c(("if [abc] {}")) == vec![Danger("if [abc] {}", "Dangerous unquoted expr", "[abc]")]);
-/// assert!(c(("a${x} blah")) == vec![Warn("a${x} blah", "Non-literal command, cannot scan", "a${x}")]);
-/// assert!(c(("set a []")) == vec![]);
-/// ```
 pub fn check_command<'a, 'b>(ctx: &'a str, tokens: &'b Vec<rstcl::TclToken<'a>>) -> Vec<CheckResult<'a>> {
     let mut results = vec![];
     // First check all subcommands which will be substituted
@@ -160,12 +118,26 @@ pub fn check_command<'a, 'b>(ctx: &'a str, tokens: &'b Vec<rstcl::TclToken<'a>>)
     }
     // Now check the command-specific interpretation of arguments etc
     let param_types = match tokens[0].val {
+        // tmconf: ltm rule <name> { }
+        "ltm" => vec![Code::Literal, Code::Literal, Code::Block],
+        // tmconf: rule <name> { }
+        "rule" => vec![Code::Literal, Code::Block],
+        // iRule when
+        "when" => match tokens.len() {
+                // when <event_name> [priority N] {}
+                // when <event_name> [timing on|off] {}
+                5 => vec![Code::Literal, Code::Literal, Code::Literal, Code::Block],
+                // when <event_name> [timing on|off] [priority N] {}
+                7 => vec![Code::Literal, Code::Literal, Code::Literal, Code::Literal, Code::Literal, Code::Block],
+                // when <event_name> {}
+                _ => vec![Code::Literal, Code::Block],
+        },
         // eval script
         "eval" => iter::repeat(Code::Block).take(tokens.len()-1).collect(),
-        // catch script [result]? [options]?
+        // tcl8.4: catch script ?varName?
         "catch" => {
             let mut param_types = vec![Code::Block];
-            if tokens.len() == 3 || tokens.len() == 4 {
+            if tokens.len() == 3 {
                 let new_params: Vec<Code> = iter::repeat(Code::Literal).take(tokens.len()-2).collect();
                 param_types.extend_from_slice(&new_params);
             }
@@ -177,24 +149,162 @@ pub fn check_command<'a, 'b>(ctx: &'a str, tokens: &'b Vec<rstcl::TclToken<'a>>)
         "proc" => vec![Code::Literal, Code::Literal, Code::Block],
         // for init cond iter body
         "for" => vec![Code::Block, Code::Expr, Code::Block, Code::Block],
-        // foreach [varname list]+ body
-        "foreach" => vec![Code::Literal, Code::Normal, Code::Block],
+        // foreach varlist1 list1 ?varlist2 list2 ...? body
+        "foreach" => {
+            let mut param_types = vec![Code::Literal, Code::Normal];
+            if tokens.len() > 4 {
+                // foreach {i y} {a b c d} j {d e f g} { }
+                let mut i = 2;
+                while i < tokens.len()-1 {
+                    param_types.extend_from_slice(&vec![Code::Literal, Code::Normal]);
+                    i = param_types.len() + 2;
+                }
+            }
+            param_types.extend_from_slice(&vec![Code::Block]);
+            param_types
+        },
         // while cond body
         "while" => vec![Code::Expr, Code::Block],
         // if cond body [elseif cond body]* [else body]?
-        "if" => {
-            let mut param_types = vec![Code::Expr, Code::Block];
-            let mut i = 3;
+        // iRules allow elseif to start on new line
+        "if"|"elseif" => {
+            let mut param_types = vec![Code::Expr];
+            let mut i = 2;
             while i < tokens.len() {
                 param_types.extend_from_slice(&match tokens[i].val {
-                    "elseif" => vec![Code::Literal, Code::Expr, Code::Block],
+                    "then" => vec![Code::Literal],
+                    "elseif" => {
+                        if tokens[i+2].val == "then" {
+                            vec![Code::Literal, Code::Expr, Code::Literal, Code::Block]
+                        } else {
+                            vec![Code::Literal, Code::Expr, Code::Block]
+                        }
+                    },
                     "else" => vec![Code::Literal, Code::Block],
-                    _ => { break; },
+                    _ => vec![Code::Block],
                 });
                 i = param_types.len() + 1;
             }
             param_types
         },
+        // iRules allow else to start on new line
+        "else" => vec![Code::Block],
+        //regexp|regsub : expression in this case refers to regular expression not tcl expressions
+        //list: list itself doesn't treat its arguments as anything in particular, but it does format them into items in a list. In a list, \ " and { operate the same way they do in Tcl. Tcl is designed this way so that a list is a properly-formatted command.
+        //set: ( accesses a variable in an array.
+        //string match: *, ?, [, and \ have special meaning.
+        "auto_execok"|"auto_import"|"auto_load"|"auto_mkindex"|"auto_mkindex_old"|"auto_qualify"|"auto_reset"|"bgerror"|"cd"|"dict"|
+        "encoding"|"eof"|"exec"|"exit"|"fblocked"|"fconfigure"|"fcopy"|"file"|"fileevent"|"filename"|"flush"|
+        "gets"|"glob"|"http"|"interp"|"load"|"lrepeat"|"lreverse"|"memory"|"namespace"|"open"|
+        "package"|"pid"|"pkg_mkIndex"|"pkg::create"|"pwd"|"rename"|"seek"|"socket"|"source"|
+        "tcl_findLibrary"|"tell"|"time"|"trace"|"unknown"|"update" => {
+            results.push(Warn(ctx, "Use of unsupported command:", tokens[0].val));
+            iter::repeat(Code::Normal).take(tokens.len()-1).collect()
+        },
+        "uplevel"|"history" => {
+            results.push(Danger(ctx, "Use of unsafe command:", tokens[0].val));
+            iter::repeat(Code::Normal).take(tokens.len()-1).collect()
+        },
+        // deprecated iRule commands
+        "accumulate"|"client_addr"|"client_port"|"decode_uri"|"findclass"|
+        "http_cookie"|"http_header"|"http_host"|"http_method"|"http_uri"|"http_version"|
+        "imid"|"ip_addr"|"ip_protocol"|"ip_tos"|"ip_ttl"|"link_qos"|"local_addr"|"local_port"|
+        "matchclass"|"redirect"|"remote_addr"|"remote_port"|"server_addr"|"server_port"|"urlcatblindquery"|"urlcatquery"|"use"|
+        "vlan_id" => {
+            results.push(Warn(ctx, "Use of deprecated command:", tokens[0].val));
+            iter::repeat(Code::Normal).take(tokens.len()-1).collect()
+        },
+        "after" => match tokens[1].val {
+            "cancel"|"info" => {
+                // after cancel|info 123
+                // after cancel|info {123 987}
+                // after cancel|info [list 12 34 56]
+                if ! (tokens[1].val == "cancel" && tokens[2].val == "-current") {
+                    vec![Code::Literal, Code::Normal]
+                } else {
+                    // after cancel -current
+                    vec![Code::Literal, Code::Literal]
+                }
+            },
+            _ => match tokens.len() {
+                // after <ms>
+                2 => vec![Code::Normal],
+                // after <ms> < script >
+                3 => vec![Code::Normal, Code::Block],
+                // after <ms> [-periodic] < script >
+                _ => vec![Code::Normal, Code::Literal, Code::Block],
+            },
+        },
+        // TODO: switch ?options? string pattern body ?pattern body …?
+        //               options: -exact -glob -regexp --
+        // switch -exact -glob -regexp --
+        "switch" => {
+            let param_types = vec![Code::Literal];
+            //let tokens_start = 3;
+            if tokens.len() == 3 {
+                results.push(Danger(ctx, "missing options terminator", "--"));
+            }
+            results.push(Warn(ctx, "Cannot scan switch, not implemented (TODO, known-issue).", ""));
+            param_types
+        },
+        // class search [-index -name -value -element -all --]
+        // class match [-index -name -value -element -all --]
+        // class nextelement [-index -name -value --] <class> <search_id>
+        // class element [-name -value --] <index> <class>
+        "class" => {
+            let tokens_total_len = match tokens[1].val {
+                "search"|"match" => tokens.len()-3,
+                _ => tokens.len()-2,
+            };
+            let mut options_terminated = false;
+            let mut i = 2;
+            while i < tokens_total_len {
+                if tokens[i].val == "--" {
+                    options_terminated = true; break;
+                }
+                i += 1;
+            }
+            if ! options_terminated {
+                results.push(Danger(ctx, "missing options terminator `--` permits argument injection", tokens[i].val));
+            }
+            iter::repeat(Code::Normal).take(tokens.len()-1).collect()
+        },
+        //unset -nocomplain -- var1 ?var2?
+        "unset" => {
+            let mut pos = 0;
+            if tokens[1].val == "-nocomplain" {
+                if tokens[2].val != "--" {
+                    pos = 2;
+                }
+            } else if tokens[1].val != "--" {
+                pos = 1;
+            }
+            if pos > 0 {
+                results.push(Danger(ctx, "missing options terminator `--` permits argument injection", tokens[pos].val));
+            }
+            iter::repeat(Code::Normal).take(tokens.len()-1).collect()
+        },
+        //regexp -about -expanded -indices -line -linestop -lineanchor -nocase -all -inline -start <index> --
+        //regsub -all -expanded -line -linestop -lineanchor -nocase -start <index> --
+        "regexp"|"regsub" => {
+            let mut options_terminated = false;
+            let mut i = 1;
+            while i < tokens.len() {
+                match tokens[i].val {
+                    "-about"|"-all"|"-expanded"|"-indices"|
+                    "-inline"|"-line"|"-lineanchor"|"-linestop"|
+                    "-nocase" => { i += 1; },
+                    "-start" => { i += 2; },
+                    "--" => { options_terminated = true; break; },
+                    _ => {break;},
+                };
+            };
+            if ! options_terminated {
+                results.push(Danger(ctx, "missing options terminator `--` permits argument injection", tokens[i].val));
+            }
+            iter::repeat(Code::Normal).take(tokens.len()-1).collect()
+        },
+        // default
         _ => iter::repeat(Code::Normal).take(tokens.len()-1).collect(),
     };
     if param_types.len() != tokens.len() - 1 {
