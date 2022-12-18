@@ -35,4 +35,4 @@ jobs:
       - name: Test
         run: |
           docker run --rm -v $PWD/tests/basic:/scandir irulescan:latest > results.yaml
-          diff results.yaml tests/basic.yaml
+          diff -BZ results.yaml tests/basic.yaml
