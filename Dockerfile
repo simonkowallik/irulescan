@@ -75,4 +75,4 @@ WORKDIR /scandir
 
 COPY --from=build-image /build/artifacts /
 
-CMD ["/scandir.sh"]
+CMD ["/scandir.sh", "/scandir"]
