@@ -2,9 +2,10 @@
 
 set -e
 
-test -d ./tests || echo "./tests directory not found. Run $0 from repo root." && exit 1
+test -d ./tests || (echo "./tests directory not found. Run $0 from repo root." && exit 1)
 
-for testfile in $(find tests/ -type f | grep -e '\.tcl$');
+IFS=$'\n';
+for testfile in $(find tests/ -type f | grep -e '\.tcl$' | sort);
 do
     echo "# $testfile"
     #irulescan check $testfile > $testfile.expected

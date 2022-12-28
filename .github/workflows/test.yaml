@@ -32,6 +32,10 @@ jobs:
           cache-to: type=gha,mode=max
           tags: irulescan:latest
 
-      - name: Test
+      - name: Run tests
+        run: |
+          docker run -it --rm -v $PWD:/scandir irulescan:latest /scandir/tests/run-tests.sh
+
+      - name: Run usage tests
         run: |
           docker run --rm -v $PWD/tests/basic:/scandir irulescan:latest
