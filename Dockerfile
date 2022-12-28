@@ -49,7 +49,7 @@ ADD . /build/irulescan
 
 RUN echo "* compile irulescan" \
 &&  cd /build/irulescan \
-&&  cargo install --path . \
+&&  cargo build --release \
 ;
 
 ADD files/scandir.sh /build/artifacts/scandir.sh
