@@ -5,9 +5,9 @@
 # then print results in simplistic yaml
 
 echo "---"
-for filename in $(find /scandir -type f | grep -i -e '\.tcl$' -e '\.irule$'); do
-    echo "${filename}: |"
-    IFS=$'\n';
+IFS=$'\n';
+for filename in $(find /scandir -type f | grep -i -e '\.tcl$' -e '\.irule$' | sort); do
+    echo "${filename#/scandir}: |"
     for line in $(irulescan check $filename);
     do
         echo "  $line"

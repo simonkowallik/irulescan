@@ -19,12 +19,12 @@ Here is an example:
 ```sh
 docker run -it --rm -v $PWD/tests/basic:/scandir simonkowallik/irulescan
 ---
-/scandir/dangerous.tcl: |
+/dangerous.tcl: |
   WARNING: Unquoted expr at `1` in `expr 1 + $one`
   WARNING: Unquoted expr at `+` in `expr 1 + $one`
   DANGEROUS: Dangerous unquoted expr at `$one` in `expr 1 + $one`
-/scandir/ok.tcl: |
-/scandir/warning.tcl: |
+/ok.tcl: |
+/warning.tcl: |
   WARNING: Unquoted expr at `1` in `expr 1 + 1`
   WARNING: Unquoted expr at `+` in `expr 1 + 1`
   WARNING: Unquoted expr at `1` in `expr 1 + 1`
@@ -35,7 +35,7 @@ Scanning a single file:
 ```sh
 docker run -it --rm -v $PWD/tests/tcl/catch.tcl:/scandir/catch.tcl simonkowallik/irulescan
 ---
-/scandir/catch.tcl: |
+/catch.tcl: |
   WARNING: Unquoted expr at `1` in `expr 1`
   WARNING: Unquoted expr at `2` in `expr 2`
 ```
