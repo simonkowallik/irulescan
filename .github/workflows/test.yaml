@@ -34,7 +34,7 @@ jobs:
 
       - name: Run tests
         run: |
-          docker run -it --rm -v $PWD:/scandir irulescan:latest /scandir/tests/run-tests.sh
+          docker run --rm -v $PWD:/scandir irulescan:latest /scandir/tests/run-tests.sh
 
       - name: Run usage tests
         run: |
