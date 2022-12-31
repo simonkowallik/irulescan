@@ -14,10 +14,10 @@ use irulescan::rstcl;
 use irulescan::CheckResult;
 
 const USAGE: &'static str = "Usage: irulescan check [--no-warn] ( - | <path> )
-    irulescan parsestr ( - | <script-str> )
-    
-    details: https://github.com/simonkowallik/irulescan
-    version: 0.9.0";
+       irulescan parsestr ( - | <script-str> )
+#
+# details: https://github.com/simonkowallik/irulescan
+# version: 1.0.0";
 
 pub fn main() {
     let args = Docopt::new(USAGE)
