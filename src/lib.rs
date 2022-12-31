@@ -36,6 +36,7 @@ enum Code {
     Expr,
     Literal,
     Normal,
+    SwitchBody,
 }
 
 fn check_literal<'a, 'b>(ctx: &'a str, token: &'b rstcl::TclToken<'a>) -> Vec<CheckResult<'a>> {
@@ -238,13 +239,33 @@ pub fn check_command<'a, 'b>(ctx: &'a str, tokens: &'b Vec<rstcl::TclToken<'a>>)
         // TODO: switch ?options? string pattern body ?pattern body …?
         //               options: -exact -glob -regexp --
         // switch -exact -glob -regexp --
+        // switch -exact -glob -regexp -- string {switch_block}
         "switch" => {
-            let param_types = vec![Code::Literal];
-            //let tokens_start = 3;
-            if tokens.len() == 3 {
-                results.push(Danger(ctx, "missing options terminator", "--"));
+            let mut options_terminated = false;
+            let mut i = 1;
+            let mut param_types: Vec<Code> = vec![];
+            while i < tokens.len() {
+                match tokens[i].val {
+                    "-exact"|"-glob"|"-regexp" => {
+                        param_types.extend_from_slice(&vec![Code::Literal]);
+                        i += 1;
+                    },
+                    "--" => {
+                        param_types.extend_from_slice(&vec![Code::Literal]);
+                        options_terminated = true;
+                        i += 1;
+                        break;
+                    },
+                    _ => {break;},
+                };
+            };
+            if ! options_terminated {
+                results.push(Danger(ctx, "missing options terminator `--` permits argument injection", tokens[i].val));
             }
-            results.push(Warn(ctx, "Cannot scan switch, not implemented (TODO, known-issue).", ""));
+            if (tokens.len() - i) != 2 {
+                results.push(Danger(ctx, "Dangerous unqoted switch body", tokens[i].val));
+            }
+            param_types.extend_from_slice(&vec![Code::Normal, Code::SwitchBody]);
             param_types
         },
         // class search [-index -name -value -element -all --]
@@ -314,6 +335,7 @@ pub fn check_command<'a, 'b>(ctx: &'a str, tokens: &'b Vec<rstcl::TclToken<'a>>)
     for (param_type, param) in param_types.iter().zip(tokens[1..].iter()) {
         let check_results: Vec<CheckResult<'a>> = match *param_type {
             Code::Block => check_block(ctx, param),
+            Code::SwitchBody => check_switch_body(ctx, param),
             Code::Expr => check_expr(ctx, param),
             Code::Literal => check_literal(ctx, param),
             Code::Normal => vec![],
@@ -321,6 +343,34 @@ pub fn check_command<'a, 'b>(ctx: &'a str, tokens: &'b Vec<rstcl::TclToken<'a>>)
         results.extend(check_results.into_iter());
     }
     return results;
+}
+
+/// Scans a switch body (i.e. should be quoted) for danger
+fn check_switch_body<'a, 'b>(ctx: &'a str, token: &'b rstcl::TclToken<'a>) -> Vec<CheckResult<'a>> {
+    let body_str = token.val;
+    if !(body_str.starts_with("{") && body_str.ends_with("}")) {
+        return vec!(Danger(ctx, "Dangerous quoted `\"` switch body", body_str));
+    }
+    // Body isn't inherently dangerous, let's check body elements
+    let script_str = &body_str[1..body_str.len()-1];
+
+    let mut all_results: Vec<CheckResult<'a>> = vec![];
+    for parse in rstcl::parse_script(script_str) {
+        let mut i = 0;
+        for token in parse.tokens.iter() {
+            if i % 2 == 0 || token.val == "-" {
+                // every 1st token is a Literal
+                let results = check_literal(ctx, token);
+                all_results.extend(results.into_iter());
+            } else {
+                // every 2nd token is a block unless it is a dash
+                let results = check_block(ctx, token);
+                all_results.extend(results.into_iter());
+            }
+            i+=1;
+        }
+    }
+    return all_results;
 }
 
 /// Scans a block (i.e. should be quoted) for danger
