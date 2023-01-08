@@ -50,7 +50,7 @@ jobs:
         if: ${{ matrix.containers.file == 'files/Dockerfile' }}
         run: |
           docker run --rm -v ${PWD}:/scandir \
-            irulescan:latest /scandir/tests/test.sh
+            simonkowallik/irulescan:latest /scandir/tests/test.sh
 
       - name: Run apiserver tests
         if: ${{ matrix.containers.file == 'files/Dockerfile.apiserver' }}
@@ -60,4 +60,4 @@ jobs:
             -v ${PWD}/tests/test.sh:/entrypoint.sh \
             --entrypoint /entrypoint.sh \
             -v ${PWD}/tests:/tests \
-            irulescan:apiserver /test-apiserver.sh
+            simonkowallik/irulescan:apiserver /test-apiserver.sh
