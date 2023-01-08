@@ -1,2 +1,10 @@
 /target
 **/private
+.local
+.vscode
+.idea
+**/*.DS_Store
+.venv
+venv/
+__pycache__/
+/archived

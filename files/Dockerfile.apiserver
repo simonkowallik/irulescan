@@ -7,7 +7,7 @@ WORKDIR /build
 
 RUN echo "* install packages" \
 &&  apt-get update -y \
-&&  apt install -y \
+&&  apt-get install -y \
           curl \
           make \
           clang \
@@ -45,7 +45,7 @@ RUN echo "* install rust nightly" \
 &&  rustup component add rustfmt \
 ;
 
-ADD . /build/irulescan
+ADD ./irulescan /build/irulescan
 
 RUN echo "* compile irulescan" \
 &&  cd /build/irulescan \
@@ -53,26 +53,27 @@ RUN echo "* compile irulescan" \
 ;
 
 ADD files/scandir.sh /build/artifacts/scandir.sh
+ADD README.md /build/artifacts/
+ADD LICENSE /build/artifacts/
 
 RUN echo "* prepare artifacts" \
 &&  mkdir -p /build/artifacts/usr/bin /build/artifacts/usr/lib \
 &&  cp /usr/lib/libtcl8.4.so /build/artifacts/usr/lib \
 &&  cp /build/irulescan/target/release/irulescan /build/artifacts/usr/bin \
-&&  cp /build/irulescan/LICENSE /build/artifacts \
-&&  cp /build/irulescan/README.md /build/artifacts \
 ;
 
-FROM debian:stable-slim AS containerimage
+FROM python:3-slim AS containerimage
 
 LABEL org.label-schema.name="irulescan" \
       org.label-schema.description="irulescan: static security analyzer for iRules" \
       org.label-schema.vcs-url="https://github.com/simonkowallik/irulescan" \
       org.label-schema.vendor="Simon Kowallik"
 
-VOLUME /scandir
+ADD files/apiserver.py /
 
-WORKDIR /scandir
+RUN python3 apiserver.py > requirements.txt \
+&&  pip3 install -r requirements.txt
 
 COPY --from=build-image /build/artifacts /
 
-CMD ["/scandir.sh", "/scandir"]
+CMD ["uvicorn", "apiserver:app", "--host", "0.0.0.0", "--port", "80", "--no-server-header"]

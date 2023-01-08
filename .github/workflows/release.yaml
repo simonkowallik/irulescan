@@ -7,6 +7,17 @@ on:
 
 jobs:
   release:
+    strategy:
+      matrix:
+        containers:
+          - file: files/Dockerfile
+            tags: |
+              simonkowallik/irulescan:latest
+              ghcr.io/simonkowallik/irulescan:latest
+          - file: files/Dockerfile.apiserver
+            tags: |
+              simonkowallik/irulescan:apiserver
+              ghcr.io/simonkowallik/irulescan:apiserver
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -36,12 +47,11 @@ jobs:
         with:
           context: .
           platforms: linux/amd64
+          file: ${{ matrix.containers.file }}
           push: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          tags: |
-            simonkowallik/irulescan:latest
-            ghcr.io/simonkowallik/irulescan:latest
+          tags: ${{ matrix.containers.tags }}
 
       - name: Docker Hub Description
         uses: peter-evans/dockerhub-description@v3

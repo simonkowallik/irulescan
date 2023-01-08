@@ -12,6 +12,17 @@ on:
 
 jobs:
   build:
+    strategy:
+      matrix:
+        containers:
+          - file: files/Dockerfile
+            tags: |
+              simonkowallik/irulescan:latest
+              ghcr.io/simonkowallik/irulescan:latest
+          - file: files/Dockerfile.apiserver
+            tags: |
+              simonkowallik/irulescan:apiserver
+              ghcr.io/simonkowallik/irulescan:apiserver
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -27,17 +38,26 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: .
+          file: ${{ matrix.containers.file }}
           platforms: linux/amd64
           push: false
           load: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          tags: irulescan:latest
+          tags: ${{ matrix.containers.tags }}
 
-      - name: Run tests
+      - name: Run container tests
+        if: ${{ matrix.containers.file == 'files/Dockerfile' }}
         run: |
-          docker run --rm -v $PWD:/scandir irulescan:latest /scandir/tests/run-tests.sh
+          docker run --rm -v ${PWD}:/scandir \
+            irulescan:latest /scandir/tests/test.sh
 
-      - name: Run usage tests
+      - name: Run apiserver tests
+        if: ${{ matrix.containers.file == 'files/Dockerfile.apiserver' }}
         run: |
-          docker run --rm -v $PWD/tests/basic:/scandir irulescan:latest
+          docker run --rm \
+            -v ${PWD}/tests/test.sh:/test-apiserver.sh \
+            -v ${PWD}/tests/test.sh:/entrypoint.sh \
+            --entrypoint /entrypoint.sh \
+            -v ${PWD}/tests:/tests \
+            irulescan:apiserver /test-apiserver.sh

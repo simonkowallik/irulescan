@@ -8,7 +8,7 @@ SCANDIR=$1
 
 echo "---"
 IFS=$'\n';
-for filename in $(find $SCANDIR -type f | grep -i -e '\.tcl$' -e '\.irule$' | sort); do
+for filename in $(find $SCANDIR -type f | grep -i -e '\.tcl$' -e '\.irul$' -e '\.irule$' | sort); do
     echo "${filename#${SCANDIR}}: |"
     for line in $(irulescan check $filename);
     do
