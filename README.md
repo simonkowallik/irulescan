@@ -52,7 +52,9 @@ docker run -i --rm -v $PWD/tests/basic:/scandir simonkowallik/irulescan
 ```
 
 <p align="center">
+<a href="https://github.com/simonkowallik/irulescan">
 <img src="https://github.com/simonkowallik/hosted_content/raw/main/images/irulescan_demo1.svg">
+</a>
 </p>
 
 Scanning a single file (`$PWD/tests/tcl/catch.tcl`):
@@ -66,7 +68,9 @@ docker run -i --rm -v $PWD/tests/tcl/catch.tcl:/scandir/catch.tcl simonkowallik/
 ```
 
 <p align="center">
+<a href="https://github.com/simonkowallik/irulescan">
 <img src="https://github.com/simonkowallik/hosted_content/raw/main/images/irulescan_demo2.svg">
+</a>
 </p>
 
 Invoking irulescan directly:
@@ -99,11 +103,13 @@ docker run -it --rm -p 80:80 simonkowallik/irulescan:apiserver
 Scanning a single file:
 
 ```sh
-curl -s http://localhost/scan/ --data-binary @tests/basic/dangerous.tcl
+curl -s http://localhost/scan/ --data-binary '@tests/basic/dangerous.tcl'
 ```
 
 <p align="center">
+<a href="https://github.com/simonkowallik/irulescan">
 <img src="https://github.com/simonkowallik/hosted_content/raw/main/images/irulescan_demo3.svg">
+</a>
 </p>
 
 Scanning multiple files:
@@ -113,13 +119,17 @@ curl -s http://localhost/scanfiles/ -F 'file=@tests/basic/warning.tcl' -F 'file=
 ```
 
 <p align="center">
+<a href="https://github.com/simonkowallik/irulescan">
 <img src="https://github.com/simonkowallik/hosted_content/raw/main/images/irulescan_demo4.svg">
+</a>
 </p>
 
 Here is a demo of the Swagger UI:
 
 <p align="center">
+<a href="https://github.com/simonkowallik/irulescan">
 <img src="https://github.com/simonkowallik/hosted_content/raw/main/images/irulescan_apiserver.gif" alt="simonkowallik/irulescan:apiserver">
+</a>
 </p>
 
 ## Additional resources
