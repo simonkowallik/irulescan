@@ -1,0 +1,8 @@
+when RULE_INIT priority 500 {
+    set n 1;
+    # space after line continouation is not allowed, not even in iRules
+while {$n < 30}      \ 
+{
+    log local0. [set n [expr $n + 30]]
+}
+}

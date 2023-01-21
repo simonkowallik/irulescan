@@ -8,5 +8,7 @@ WARNING: Unquoted expr at `100` in `expr 100`
 WARNING: Unquoted expr at `200` in `expr 200`
 WARNING: Unquoted expr at `300` in `expr 300`
 WARNING: Unquoted expr at `400` in `expr 400`
-WARNING: badly formed command at `else` in `else`
+WARNING: Unquoted expr at `1000` in `expr 1000`
+WARNING: Unquoted expr at `2000` in `expr 2000`
+WARNING: Unquoted expr at `3000` in `expr 3000`
 

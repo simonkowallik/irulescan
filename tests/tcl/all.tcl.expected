@@ -1,0 +1,76 @@
+WARNING: Unquoted expr at `1` in `expr 1`
+WARNING: Unquoted expr at `2` in `expr 2`
+WARNING: Unquoted expr at `3` in `expr 3`
+DANGEROUS: Dangerous unquoted block at `$curr` in `after $cncl $curr`
+WARNING: Unquoted block at `123` in `after $cncl 123`
+WARNING: Unquoted expr at `4` in `expr 4`
+DANGEROUS: Dangerous unquoted block at `[expr 4]` in `after $cncl [expr 4]`
+WARNING: Unquoted block at `123` in `after $inf 123`
+WARNING: Unquoted expr at `5` in `expr 5`
+DANGEROUS: Dangerous unquoted block at `[expr 5]` in `after $inf [expr 5]`
+WARNING: Unquoted expr at `6` in `expr 6`
+WARNING: Unquoted expr at `7` in `expr 7`
+WARNING: Unquoted expr at `8` in `expr 8`
+WARNING: Unquoted expr at `9` in `expr 9`
+WARNING: Unquoted expr at `1` in `expr 1`
+WARNING: Unquoted expr at `2` in `expr 2`
+WARNING: Unquoted expr at `1` in `expr 1`
+WARNING: Unquoted expr at `2` in `expr 2`
+WARNING: Unquoted expr at `3` in `expr 3`
+WARNING: Unquoted expr at `1` in `expr 1`
+WARNING: Unquoted expr at `2` in `expr 2`
+WARNING: Unquoted expr at `3` in `expr 3`
+WARNING: Unquoted expr at `10` in `expr 10`
+WARNING: Unquoted expr at `20` in `expr 20`
+WARNING: Unquoted expr at `30` in `expr 30`
+WARNING: Unquoted expr at `100` in `expr 100`
+WARNING: Unquoted expr at `200` in `expr 200`
+WARNING: Unquoted expr at `300` in `expr 300`
+WARNING: Unquoted expr at `400` in `expr 400`
+WARNING: Unquoted expr at `1000` in `expr 1000`
+WARNING: Unquoted expr at `2000` in `expr 2000`
+WARNING: Unquoted expr at `3000` in `expr 3000`
+DANGEROUS: missing options terminator `--` permits argument injection at `exp_fail_100` in `regexp -about -expanded -indices -line -linestop -lineanchor -nocase -all -inline -start <index> exp_fail_100 string ?matchVar? ?subMatchVar subMatchVar ...?`
+DANGEROUS: missing options terminator `--` permits argument injection at `exp_fail_200` in `regsub -all -expanded -line -linestop -lineanchor -nocase -start <index> exp_fail_200 string subSpec ?varName?`
+DANGEROUS: missing options terminator `--` permits argument injection at `exp_fail_300` in `regexp -about -expanded -indices -line -linestop -lineanchor -nocase -all -inline exp_fail_300 string ?matchVar? ?subMatchVar subMatchVar ...?`
+DANGEROUS: missing options terminator `--` permits argument injection at `exp_fail_400` in `regsub -all -expanded -line -linestop -lineanchor -nocase exp_fail_400 string subSpec ?varName?`
+DANGEROUS: missing options terminator `--` permits argument injection at `exp_fail_500` in `regexp -about -expanded -indices -line -linestop -lineanchor -nocase -all -inline exp_fail_500 string ?matchVar? ?subMatchVar subMatchVar ...?`
+DANGEROUS: missing options terminator `--` permits argument injection at `exp_fail_600` in `regsub -all -expanded -line -linestop -lineanchor -nocase exp_fail_600 string subSpec ?varName?`
+DANGEROUS: missing options terminator `--` permits argument injection at `exp_fail_700` in `regexp exp_fail_700 string ?matchVar? ?subMatchVar subMatchVar ...?`
+DANGEROUS: missing options terminator `--` permits argument injection at `exp_fail_800` in `regsub exp_fail_800 string subSpec ?varName?`
+DANGEROUS: missing options terminator `--` permits argument injection at `"abc"` in `switch "abc" {    abc {}    default {expr 2}}`
+WARNING: Unquoted expr at `2` in `expr 2`
+DANGEROUS: missing options terminator `--` permits argument injection at `abc` in `switch abc {    a -    b {expr 10}    $foo {expr 20}    default {expr 30}}`
+WARNING: Unquoted expr at `10` in `expr 10`
+DANGEROUS: Expected literal, found $ at `$foo` in `switch abc {    a -    b {expr 10}    $foo {expr 20}    default {expr 30}}`
+WARNING: Unquoted expr at `20` in `expr 20`
+WARNING: Unquoted expr at `30` in `expr 30`
+DANGEROUS: missing options terminator `--` permits argument injection at `abc` in `switch abc a {expr 100}`
+DANGEROUS: Dangerous unquoted switch body at `abc` in `switch abc a {expr 100}`
+DANGEROUS: badly formed command, cannot scan code at `switch` in `switch abc a {expr 100}`
+DANGEROUS: missing options terminator `--` permits argument injection at `abc` in `switch abc a - b {expr 1000} $foo {expr 2000} default {expr 3000}`
+DANGEROUS: Dangerous unquoted switch body at `abc` in `switch abc a - b {expr 1000} $foo {expr 2000} default {expr 3000}`
+DANGEROUS: badly formed command, cannot scan code at `switch` in `switch abc a - b {expr 1000} $foo {expr 2000} default {expr 3000}`
+DANGEROUS: Dangerous unquoted switch body at `abc` in `switch -- abc a - b {expr 10000} $foo {expr 20000} default {expr 30000}`
+DANGEROUS: badly formed command, cannot scan code at `switch` in `switch -- abc a - b {expr 10000} $foo {expr 20000} default {expr 30000}`
+WARNING: Unquoted expr at `1*1` in `expr 1*1`
+DANGEROUS: Expected literal, found $ at `$foo` in `switch -- abc { a - b {expr 1*1} $foo {expr 2*2} default {expr 3*3} }`
+WARNING: Unquoted expr at `2*2` in `expr 2*2`
+WARNING: Unquoted expr at `3*3` in `expr 3*3`
+DANGEROUS: Dangerous unquoted expr at `$DANGEROUS` in `expr $DANGEROUS `
+WARNING: Unquoted expr at `111` in `expr 111`
+DANGEROUS: Dangerous unquoted expr at `$DANGEROUS` in `expr $DANGEROUS`
+DANGEROUS: Expected literal, found [ at `"[expr 222]"` in `switch -exact -- $foo {    {bar} {        expr $DANGEROUS        } {fiz} -    "faz" -    "[expr 222]" -    default {}}`
+WARNING: Unquoted expr at `333` in `expr 333`
+DANGEROUS: Dangerous unquoted switch body at `$var` in `switch -exact -- $var \    {bar} {        expr $DANGEROUS        } \    {fiz} - \    "faz" - \    "[expr 333]" - \    default {}`
+DANGEROUS: badly formed command, cannot scan code at `switch` in `switch -exact -- $var \    {bar} {        expr $DANGEROUS        } \    {fiz} - \    "faz" - \    "[expr 333]" - \    default {}`
+DANGEROUS: missing options terminator `--` permits argument injection at `aaab` in `switch -glob aaab $switch`
+DANGEROUS: Dangerous quoted `"` switch body at `$switch` in `switch -glob aaab $switch`
+DANGEROUS: missing options terminator `--` permits argument injection at `c` in `switch -glob c $switch`
+DANGEROUS: Dangerous quoted `"` switch body at `$switch` in `switch -glob c $switch`
+DANGEROUS: missing options terminator `--` permits argument injection at `fail_100` in `unset fail_100 var_y var_z`
+DANGEROUS: missing options terminator `--` permits argument injection at `fail_200` in `unset -nocomplain fail_200 var_y var_z`
+WARNING: Unquoted expr at `1` in `expr 1`
+DANGEROUS: Dangerous unquoted expr at `[expr 1]` in `while [expr 1] {    expr 2}`
+WARNING: Unquoted expr at `2` in `expr 2`
+

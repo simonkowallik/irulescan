@@ -1,0 +1,7 @@
+when RULE_INIT priority 500 {
+    set n 1;
+while {$n < 30}
+{
+    log local0. [set n [expr $n + 30]]
+}
+}

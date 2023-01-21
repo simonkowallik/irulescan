@@ -1,0 +1,8 @@
+when RULE_INIT priority 500 {
+  for   
+ {set x 0}   
+    {$x<10}   
+{incr x}   {
+    log local0. "for x is [expr $x]"
+}
+}
