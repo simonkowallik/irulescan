@@ -4,7 +4,6 @@ extern crate rustc_serialize;
 extern crate docopt;
 extern crate irulescan;
 
-use std::error::Error;
 use std::fs;
 use std::io::prelude::*;
 use std::io;
@@ -13,11 +12,13 @@ use docopt::Docopt;
 use irulescan::rstcl;
 use irulescan::CheckResult;
 
-const USAGE: &'static str = "Usage: irulescan check [--no-warn] ( - | <path> )
+const USAGE: &'static str = "
+Usage: irulescan check [--no-warn] ( - | <path> )
        irulescan parsestr ( - | <script-str> )
-#
-# details: https://github.com/simonkowallik/irulescan
-# version: 1.0.0";
+Additional Information:
+    home: https://github.com/simonkowallik/irulescan
+    version: 1.1.0
+";
 
 pub fn main() {
     let args = Docopt::new(USAGE)
@@ -38,13 +39,13 @@ pub fn main() {
             let path_display = path.display();
             let mut file = match fs::File::open(&path) {
                 Err(err) => panic!("ERROR: Couldn't open {}: {}",
-                                   path_display, Error::description(&err)),
+                                   path_display, format!("{}", &err)),
                 Ok(file) => file,
             };
             let mut file_content = String::new();
             match file.read_to_string(&mut file_content) {
                 Err(err) => panic!("ERROR: Couldn't read {}: {}",
-                                   path_display, Error::description(&err)),
+                                   path_display, format!("{}", &err)),
                 Ok(_) => file_content,
             }
         },
@@ -53,14 +54,14 @@ pub fn main() {
             let mut stdin_content = String::new();
             match io::stdin().read_to_string(&mut stdin_content) {
                 Err(err) => panic!("ERROR: Couldn't read stdin: {}",
-                                   Error::description(&err)),
+                                    format!("{}", &err)),
                 Ok(_) => stdin_content,
             }
         },
         (false, true, false) => arg_script_str.to_owned(),
         _ => panic!("Internal error: could not load script"),
     };
-    let script = &script_in;
+    let script = &irulescan::preprocess_script(&script_in);
     match (cmd_check, cmd_parsestr) {
         (true, false) => {
             let mut results = irulescan::scan_script(script);
@@ -71,7 +72,8 @@ pub fn main() {
             }
             if results.len() > 0 {
                 for check_result in results.iter() {
-                    println!("{}", check_result);
+                    // HACK: restore original rand() by removing artificial parameter
+                    println!("{}", format!("{}",check_result).replace("rand($IRULESCAN)", "rand()"));
                 }
                 println!("");
             };

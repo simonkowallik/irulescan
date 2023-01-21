@@ -5,9 +5,11 @@ extern crate libc;
 // https://github.com/rust-lang/rust/issues/16920
 #[macro_use] extern crate enum_primitive;
 extern crate num;
+extern crate fancy_regex;
 
 use std::iter;
 use std::fmt;
+use fancy_regex::Regex;
 use self::CheckResult::*; // TODO: why does swapping this line with one below break?
 use rstcl::TokenType;
 
@@ -263,7 +265,7 @@ pub fn check_command<'a, 'b>(ctx: &'a str, tokens: &'b Vec<rstcl::TclToken<'a>>)
                 results.push(Danger(ctx, "missing options terminator `--` permits argument injection", tokens[i].val));
             }
             if (tokens.len() - i) != 2 {
-                results.push(Danger(ctx, "Dangerous unqoted switch body", tokens[i].val));
+                results.push(Danger(ctx, "Dangerous unquoted switch body", tokens[i].val));
             }
             param_types.extend_from_slice(&vec![Code::Normal, Code::SwitchBody]);
             param_types
@@ -325,11 +327,42 @@ pub fn check_command<'a, 'b>(ctx: &'a str, tokens: &'b Vec<rstcl::TclToken<'a>>)
             }
             iter::repeat(Code::Normal).take(tokens.len()-1).collect()
         },
+        // table set      [-notouch] [-subtable <name> | -georedundancy] [-mustexist|-excl] <key> <value> [<timeout> [<lifetime>]]
+        // table add      [-notouch] [-subtable <name> | -georedundancy] <key> <value> [<timeout> [<lifetime>]]
+        // table replace  [-notouch] [-subtable <name> | -georedundancy] <key> <value> [<timeout> [<lifetime>]]
+        // table lookup   [-notouch] [-subtable <name> | -georedundancy] <key>
+        // table incr     [-notouch] [-subtable <name> | -georedundancy] [-mustexist] <key> [<delta>]
+        // table append   [-notouch] [-subtable <name> | -georedundancy] [-mustexist] <key>  <string>
+        // table delete   [-subtable <name> | -georedundancy] <key>|-all
+        // table timeout  [-subtable <name> | -georedundancy] [-remaining] <key>
+        // table timeout  [-subtable <name> | -georedundancy] <key> [<value>]
+        // table lifetime [-subtable <name> | -georedundancy] [-remaining] <key>
+        // table lifetime [-subtable <name> | -georedundancy] <key> [<value>]
+        // table keys -subtable <name> [-count|-notouch]
+        "table" => {
+            let mut options_terminated = false;
+            let mut i = 1;
+            while i < tokens.len() {
+                match tokens[i].val {
+                    "set"|"add"|"replace"|"lookup"|"incr"|"append"|"delete"|"timeout"|"lifetime"|
+                    "-notouch"|"-georedundancy"|"-mustexist"|"-count"|"-remaining"|
+                    "-excl" => { i += 1; },
+                    "-subtable" => { i += 2; },
+                    "keys" => { options_terminated = true; break; },
+                    "--" => { options_terminated = true; break; },
+                    _ => {break;},
+                };
+            };
+            if ! options_terminated {
+                results.push(Danger(ctx, "missing options terminator `--` permits argument injection", tokens[i].val));
+            }
+            iter::repeat(Code::Normal).take(tokens.len()-1).collect()
+        },
         // default
         _ => iter::repeat(Code::Normal).take(tokens.len()-1).collect(),
     };
     if param_types.len() != tokens.len() - 1 {
-        results.push(Warn(ctx, "badly formed command", tokens[0].val));
+        results.push(Danger(ctx, "badly formed command, cannot scan code", tokens[0].val));
         return results;
     }
     for (param_type, param) in param_types.iter().zip(tokens[1..].iter()) {
@@ -425,4 +458,34 @@ pub fn scan_script<'a>(string: &'a str) -> Vec<CheckResult<'a>> {
         all_results.extend(results.into_iter());
     }
     return all_results;
+}
+
+/// Preprocess iRules to sanitize lax irule syntax
+pub fn preprocess_script(string: &str) -> String {
+    fn re_replacer(s: &str, re: &Regex, t: &str) -> String {
+        re.replace_all(s, t).into()
+    }
+    let processed_script = &string;
+    //let processed_script = re_replacer(
+    //    &processed_script,
+    //    &Regex::new(r"(?<=[^\\])\\\s+\n").unwrap(),
+    //    &r"\\\n"
+    //);
+    // HACK: rand() causes parsing errors, to avoid backtraces inject artificial parameter
+    let processed_script = re_replacer(
+        &processed_script,
+        &Regex::new(r"rand\(\)").unwrap(),
+        &r"rand($IRULESCAN)" // this would produce a TCL syntax error 
+    );
+    let processed_script = re_replacer(
+        &processed_script,
+        &Regex::new(r"(?<!(\\|\{))\n[\s]*\{").unwrap(),
+        &r" {"
+    );
+    let processed_script = re_replacer(
+        &processed_script,
+        &Regex::new(r"(?P<token>\}|else|then|while|for)[\n\s]*\{").unwrap(),
+        &r"$token {"
+    );
+    return processed_script;
 }

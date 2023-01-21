@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 use std::mem::uninitialized;
 use std::ffi::CString;
 
