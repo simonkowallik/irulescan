@@ -1,0 +1,29 @@
+---
+---
+
+header {
+    display: none;
+}
+h1,h2,h3,h4,h5,h6 {
+    font-weight: normal;
+    font-family: Monaco, "Bitstream Vera Sans Mono", "Lucida Console", Terminal, monospace;
+    color: #e85353;
+    letter-spacing: -0.03em;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.1),0 0 5px rgba(181,232,83,0.1),0 0 10px rgba(181,232,83,0.1)
+}
+hr {
+    height: 0;
+    border: 0;
+    border-bottom: 1px dashed #e85353;
+    color: #e85353
+}
+code.highlighter-rouge {
+    background: rgba(0,0,0,0.9);
+    border: 1px solid rgba(255,255,255,0.15);
+    padding: 0px 3px;
+    margin: 0px -3px;
+    color: #d77676;
+    border-radius: 2px;
+}
+
+@import "{{ site.theme }}";
