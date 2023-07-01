@@ -90,7 +90,7 @@ app = FastAPI(
     ],
     description="[irulescan homepage](https://github.com/simonkowallik/irulescan/)",
     title="irulescan",
-    version="1.1.0",
+    version="1.1.1",
     docs_url="/",
 )
 

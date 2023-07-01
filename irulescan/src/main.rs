@@ -17,7 +17,7 @@ Usage: irulescan check [--no-warn] ( - | <path> )
        irulescan parsestr ( - | <script-str> )
 Additional Information:
     home: https://github.com/simonkowallik/irulescan
-    version: 1.1.0
+    version: 1.1.1
 ";
 
 pub fn main() {
