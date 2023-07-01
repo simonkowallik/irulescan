@@ -1,4 +1,4 @@
-FROM debian:stable-slim AS build-image
+FROM ubuntu:latest AS build-image
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PATH="/:/root/.cargo/bin:$PATH"
@@ -62,7 +62,7 @@ RUN echo "* prepare artifacts" \
 &&  cp /build/irulescan/target/release/irulescan /build/artifacts/usr/bin \
 ;
 
-FROM python:3-slim AS containerimage
+FROM ubuntu:latest AS containerimage
 
 LABEL org.label-schema.name="irulescan" \
       org.label-schema.description="irulescan: static security analyzer for iRules" \
@@ -71,7 +71,15 @@ LABEL org.label-schema.name="irulescan" \
 
 ADD files/apiserver.py /
 
-RUN python3 apiserver.py > requirements.txt \
+RUN echo "* install packages" \
+&&  apt-get update -y \
+&&  apt-get install -y \
+          curl \
+          python3 \
+&& apt-get autoremove -y
+
+RUN curl -L https://bootstrap.pypa.io/get-pip.py | python3 \
+&&  python3 apiserver.py > requirements.txt \
 &&  pip3 install -r requirements.txt
 
 COPY --from=build-image /build/artifacts /

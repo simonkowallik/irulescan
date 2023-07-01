@@ -15,7 +15,7 @@
 <a href="https://hub.docker.com/r/simonkowallik/irulescan">
     <img src="https://img.shields.io/docker/image-size/simonkowallik/irulescan" alt="container image size">
 </a>
-<a href="https://img.shields.io/github/v/release/simonkowallik/irulescan">
+<a href="https://github.com/simonkowallik/irulescan/releases">
     <img src="https://img.shields.io/github/v/release/simonkowallik/irulescan" alt="releases">
 </a>
 </p>
@@ -38,7 +38,7 @@ Files with the (case insensitive) extensions `.tcl`, `.irul` and `.irule` will b
 Scanning a directory (`$PWD/tests/basic`):
 
 ```sh
-docker run -i --rm -v $PWD/tests/basic:/scandir simonkowallik/irulescan
+docker run --rm -v "$PWD/tests/basic:/scandir" simonkowallik/irulescan
 ---
 /dangerous.tcl: |
   WARNING: Unquoted expr at `1` in `expr 1 + $one`
@@ -60,7 +60,7 @@ docker run -i --rm -v $PWD/tests/basic:/scandir simonkowallik/irulescan
 Scanning a single file (`$PWD/tests/tcl/catch.tcl`):
 
 ```sh
-docker run -i --rm -v $PWD/tests/tcl/catch.tcl:/scandir/catch.tcl simonkowallik/irulescan
+docker run --rm -v "$PWD/tests/tcl/catch.tcl:/scandir/catch.tcl" simonkowallik/irulescan
 ---
 /catch.tcl: |
   WARNING: Unquoted expr at `1` in `expr 1`
@@ -76,15 +76,15 @@ docker run -i --rm -v $PWD/tests/tcl/catch.tcl:/scandir/catch.tcl simonkowallik/
 Invoking irulescan directly:
 
 ```sh
-docker run -i --rm simonkowallik/irulescan irulescan
+docker run --rm simonkowallik/irulescan irulescan
 ```
 
 The container ships with a simple shell script, `scandir.sh`, which can be invoked directly.
 This is especially useful when using a CI system with custom mount points (eg. `/custom/path`), here is an example:
 
 ```sh
-docker run -i --rm \
-  -v $PWD/tests/tcl/:/custom/path \
+docker run --rm \
+  -v "$PWD/tests/tcl/:/custom/path" \
   simonkowallik/irulescan /scandir.sh /custom/path
 ```
 
@@ -97,7 +97,7 @@ The irulescan container tag `:apiserver` ships with a simple Swagger / OpenAPI s
 Start the API server:
 
 ```sh
-docker run -it --rm -p 80:80 simonkowallik/irulescan:apiserver
+docker run -t --rm -p 80:80 simonkowallik/irulescan:apiserver
 ```
 
 Scanning a single file:

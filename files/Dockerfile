@@ -1,4 +1,4 @@
-FROM debian:stable-slim AS build-image
+FROM ubuntu:latest AS build-image
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PATH="/:/root/.cargo/bin:$PATH"
@@ -62,7 +62,7 @@ RUN echo "* prepare artifacts" \
 &&  cp /build/irulescan/target/release/irulescan /build/artifacts/usr/bin \
 ;
 
-FROM debian:stable-slim AS containerimage
+FROM ubuntu:latest AS containerimage
 
 LABEL org.label-schema.name="irulescan" \
       org.label-schema.description="irulescan: static security analyzer for iRules" \
