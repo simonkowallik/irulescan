@@ -270,8 +270,8 @@ pub fn check_command<'a, 'b>(ctx: &'a str, tokens: &'b Vec<rstcl::TclToken<'a>>)
             param_types.extend_from_slice(&vec![Code::Normal, Code::SwitchBody]);
             param_types
         },
-        // class search [-index -name -value -element -all --]
-        // class match [-index -name -value -element -all --]
+        // class search [-index -name -value -element -all --] <class> <operator> <item>
+        // class match [-index -name -value -element -all --] <item> <operator> <class>
         // class nextelement [-index -name -value --] <class> <search_id>
         // class element [-name -value --] <index> <class>
         "class" => {
@@ -279,7 +279,10 @@ pub fn check_command<'a, 'b>(ctx: &'a str, tokens: &'b Vec<rstcl::TclToken<'a>>)
                 "search"|"match" => tokens.len()-3,
                 _ => tokens.len()-2,
             };
-            let mut options_terminated = false;
+            let mut options_terminated = match tokens[1].val {
+                "search"|"match"|"nextelement"|"element" => false,
+                _ => true,
+            };
             let mut i = 2;
             while i < tokens_total_len {
                 if tokens[i].val == "--" {
