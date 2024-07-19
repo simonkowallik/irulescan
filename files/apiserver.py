@@ -1,15 +1,20 @@
 """Simple API server for irulescan"""
+
 import asyncio
 import os
 import sys
+import json
 from shlex import quote as shlex_quote
 from tempfile import mkstemp
+from typing import Union
+
 
 REQUIREMENTS_TXT = """
 aiofile
-fastapi
+fastapi-slim
 python-multipart
-uvicorn[standard]
+uvicorn
+uvloop
 """
 
 if __name__ == "__main__":
@@ -24,7 +29,7 @@ from uvicorn.server import logger
 
 
 class WriteTmpfile:
-    """async context manager to wirte data to a temporary file"""
+    """async context manager to write data to a temporary file"""
 
     def __init__(self, data: str):
         self.__data = data
@@ -51,9 +56,9 @@ class WriteTmpfile:
         os.remove(self.filename)
 
 
-async def irulescan(filepath: str):
-    """executes irulescan check on the given filepath and returns stdout or throws an HTTPException"""
-    cmd = "RUST_BACKTRACE=full irulescan check "
+async def irulescan(filepath: str) -> Union[dict, list]:
+    """executes irulescan check on the given filepath and returns the results or throws an HTTPException"""
+    cmd = "RUST_BACKTRACE=full irulescan check --json "
     cmd += shlex_quote(filepath)
     proc = await asyncio.create_subprocess_shell(
         cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
@@ -67,7 +72,7 @@ async def irulescan(filepath: str):
         )
         raise HTTPException(status_code=500, detail=stderr.decode())
 
-    return stdout.decode()
+    return json.loads(stdout.decode())
 
 
 def decode(data: bytes) -> str:
@@ -85,19 +90,20 @@ app = FastAPI(
     openapi_tags=[
         {
             "name": "irulescan",
-            "description": "Check submitted iRules for potential security issues.",
+            "description": "static security analyzer for iRules.",
         },
     ],
     description="[irulescan homepage](https://github.com/simonkowallik/irulescan/)",
     title="irulescan",
-    version="1.1.1",
+    version="2.0.0",
     docs_url="/",
 )
 
 
 class Result(BaseModel):
-    filename: str
-    output: str
+    filepath: str
+    warning: list
+    dangerous: list
 
 
 @app.post(
@@ -110,14 +116,15 @@ class Result(BaseModel):
             "content": {
                 "application/json": {
                     "example": [
+                        {"filepath": "ok.tcl", "warning": [], "dangerous": []},
                         {
-                            "filename": "dangerous.tcl",
-                            "output": "WARNING: Unquoted expr at `1` in `expr 1 + $one`\nWARNING: Unquoted expr at `+` in `expr 1 + $one`\nDANGEROUS: Dangerous unquoted expr at `$one` in `expr 1 + $one`\n\n",
-                        },
-                        {"filename": "ok.tcl", "output": ""},
-                        {
-                            "filename": "warning.tcl",
-                            "output": "WARNING: Unquoted expr at `1` in `expr 1 + 1`\nWARNING: Unquoted expr at `+` in `expr 1 + 1`\nWARNING: Unquoted expr at `1` in `expr 1 + 1`\n\n",
+                            "filepath": "warning.tcl",
+                            "warning": [
+                                "Unquoted expr at `1` in `expr 1 + 1`",
+                                "Unquoted expr at `+` in `expr 1 + 1`",
+                                "Unquoted expr at `1` in `expr 1 + 1`",
+                            ],
+                            "dangerous": [],
                         },
                     ]
                 }
@@ -135,8 +142,11 @@ async def scanfiles(file: list[UploadFile]):
     ```shell
     $ curl -s http://localhost/scanfiles/ -F 'file=@tests/basic/warning.tcl' -F 'file=@tests/basic/ok.tcl'
     [
-      { "filename": "ok.tcl", "output": "" },
-      { "filename": "warning.tcl", "output": "WARNING: Unquoted expr at `1` in `expr 1 + 1`\\nWARNING: Unquoted expr at `+` in `expr 1 + 1`\\nWARNING: Unquoted expr at `1` in `expr 1 + 1`\\n\\n" }
+        {"filepath":"ok.tcl","warning":[],"dangerous":[]},
+        {"filepath":"warning.tcl",
+         "warning":["Unquoted expr at `1` in `expr 1 + 1`","Unquoted expr at `+` in `expr 1 + 1`","Unquoted expr at `1` in `expr 1 + 1`"],
+         "dangerous":[]
+        }
     ]
     ```
     """
@@ -146,9 +156,12 @@ async def scanfiles(file: list[UploadFile]):
     ):
         data = await _file.read()
         async with WriteTmpfile(decode(data)) as tmpfile:
+            _result = await irulescan(tmpfile.filename)
             results.append(
                 Result(
-                    filename=_file.filename, output=await irulescan(tmpfile.filename)
+                    filepath=_file.filename,
+                    warning=_result.get("warning", []),
+                    dangerous=_result.get("dangerous", []),
                 )
             )
 
@@ -182,20 +195,27 @@ SCAN_EXAMPLES = {
     tags=["irulescan"],
     responses={
         200: {
-            "description": "Returns the irulescan result as text/plain.",
+            "description": "Returns the irulescan result.",
             "content": {
-                "text/plain": {
-                    "example": "WARNING: Unquoted expr at `1` in `expr 1 + $one`\nWARNING: Unquoted expr at `+` in `expr 1 + $one`\nDANGEROUS: Dangerous unquoted expr at `$one` in `expr 1 + $one`\n\n"
+                "application/json": {
+                    "example": {
+                        "warning": [
+                            "Unquoted expr at `1` in `expr 1 + $one`",
+                            "Unquoted expr at `+` in `expr 1 + $one`",
+                        ],
+                        "dangerous": [
+                            "Dangerous unquoted expr at `$one` in `expr 1 + $one`"
+                        ],
+                    }
                 }
             },
         }
     },
-    response_class=PlainTextResponse,
     summary="Scan POST data",
 )
 async def scan(
     source_code: str = Body(
-        media_type="text/plain",
+        media_type="application/json",
         examples={
             "dangerous": {
                 "summary": "Dangerous unqouted expression",
@@ -213,19 +233,22 @@ async def scan(
                 "value": SCAN_EXAMPLES["ok"],
             },
         },
-    )
+    ),
 ):
     """
-    Accepts plaintext content and treats it as a file. Returns the irulescan results as plaintext.
+    Accepts plaintext content and treats it as a file. Returns the irulescan results as JSON.
 
     Example usage:
 
     ```shell
     $ curl -s http://localhost/scan/ --data-binary @tests/basic/dangerous.tcl
-    WARNING: Unquoted expr at `1` in `expr 1 + $one`
-    WARNING: Unquoted expr at `+` in `expr 1 + $one`
-    DANGEROUS: Dangerous unquoted expr at `$one` in `expr 1 + $one`
-
+    {
+        "warning": [
+            "Unquoted expr at `1` in `expr 1 + $one`",
+            "Unquoted expr at `+` in `expr 1 + $one`"
+        ],
+        "dangerous": ["Dangerous unquoted expr at `$one` in `expr 1 + $one`"]
+    }
     ```
     """
     async with WriteTmpfile(source_code) as tmpfile:
