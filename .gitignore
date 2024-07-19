@@ -1,5 +1,8 @@
 /target
+/irulescan/target
+/irulescan/src/tcl.rs
 **/private
+**/.ruff_cache
 .local
 .vscode
 .idea
