@@ -1,0 +1,9 @@
+{
+  "warning": [
+    "Unquoted expr at `+` in `expr $n + 30`",
+    "Unquoted expr at `30` in `expr $n + 30`"
+  ],
+  "dangerous": [
+    "Dangerous unquoted expr at `$n` in `expr $n + 30`"
+  ]
+}

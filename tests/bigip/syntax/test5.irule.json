@@ -1,0 +1,8 @@
+{
+  "warning": [
+    "Unquoted expr at `4` in `expr 4`"
+  ],
+  "dangerous": [
+    "missing options terminator `--` permits argument injection at `{4}` in `switch    {4} {   {4} {log local0. [expr 4]} }   `"
+  ]
+}

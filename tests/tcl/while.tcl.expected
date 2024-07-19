@@ -1,4 +1,0 @@
-WARNING: Unquoted expr at `1` in `expr 1`
-DANGEROUS: Dangerous unquoted expr at `[expr 1]` in `while [expr 1] {    expr 2}`
-WARNING: Unquoted expr at `2` in `expr 2`
-
