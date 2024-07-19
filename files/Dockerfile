@@ -1,23 +1,20 @@
-FROM ubuntu:latest AS build-image
+FROM cgr.dev/chainguard/wolfi-base AS build-image
 
-ENV DEBIAN_FRONTEND=noninteractive
 ENV PATH="/:/root/.cargo/bin:$PATH"
 
 WORKDIR /build
 
 RUN echo "* install packages" \
-&&  apt-get update -y \
-&&  apt-get install -y \
+&&  apk update \
+&&  apk add \
           curl \
           make \
-          clang \
           patch \
-&& echo "* remove default rust, cargo and tcl installation" \
-&&  apt-get remove -y \
-          cargo \
-          rustc \
-          tcl8.6 \
-&& apt-get autoremove -y
+&&  apk add \
+          gcc \
+          clang \
+          glibc-dev \
+;
 
 #ENV TCL_SOURCE_LOCATION=https://sourceforge.net/projects/tcl/files/Tcl/8.4.20/tcl8.4.20-src.tar.gz/download
 ENV TCL_SOURCE_LOCATION=http://archive.ubuntu.com/ubuntu/pool/universe/t/tcl8.4/tcl8.4_8.4.20.orig.tar.gz
@@ -41,20 +38,19 @@ RUN echo "* configure, patch, compile and install tcl" \
 ;
 
 RUN echo "* install rust nightly" \
-&&  curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2022-12-06 \
+&&  curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2024-07-14 \
 &&  rustup component add rustfmt \
 ;
 
-ADD ./irulescan /build/irulescan
+COPY ./irulescan/Cargo.toml /build/irulescan/Cargo.toml
+COPY ./irulescan/Cargo.lock /build/irulescan/Cargo.lock
+COPY ./irulescan/src /build/irulescan/src
 
 RUN echo "* compile irulescan" \
 &&  cd /build/irulescan \
+&&  cargo update \
 &&  cargo build --release \
 ;
-
-ADD files/scandir.sh /build/artifacts/scandir.sh
-ADD README.md /build/artifacts/
-ADD LICENSE /build/artifacts/
 
 RUN echo "* prepare artifacts" \
 &&  mkdir -p /build/artifacts/usr/bin /build/artifacts/usr/lib \
@@ -62,7 +58,10 @@ RUN echo "* prepare artifacts" \
 &&  cp /build/irulescan/target/release/irulescan /build/artifacts/usr/bin \
 ;
 
-FROM ubuntu:latest AS containerimage
+COPY README.md /build/artifacts/
+COPY LICENSE /build/artifacts/
+
+FROM cgr.dev/chainguard/cc-dynamic:latest AS containerimage
 
 LABEL org.label-schema.name="irulescan" \
       org.label-schema.description="irulescan: static security analyzer for iRules" \
@@ -75,4 +74,6 @@ WORKDIR /scandir
 
 COPY --from=build-image /build/artifacts /
 
-CMD ["/scandir.sh", "/scandir"]
+ENTRYPOINT ["irulescan"]
+
+CMD ["checkdir", "."]
