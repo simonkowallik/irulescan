@@ -38,8 +38,8 @@ RUN echo "* configure, patch, compile and install tcl" \
 ;
 
 RUN echo "* install rust nightly" \
-&&  curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2024-07-14 \
-&&  rustup component add rustfmt \
+&&  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain none -y \
+&&  rustup toolchain install nightly-2024-12-01 --profile minimal \
 ;
 
 COPY ./irulescan/Cargo.toml /build/irulescan/Cargo.toml
@@ -61,10 +61,10 @@ RUN echo "* prepare artifacts" \
 COPY README.md /build/artifacts/
 COPY LICENSE /build/artifacts/
 
-FROM cgr.dev/chainguard/cc-dynamic:latest AS containerimage
+FROM cgr.dev/chainguard/glibc-dynamic:latest AS containerimage
 
 LABEL org.label-schema.name="irulescan" \
-      org.label-schema.description="irulescan: static security analyzer for iRules" \
+      org.label-schema.description="irulescan: security analyzer for iRules" \
       org.label-schema.vcs-url="https://github.com/simonkowallik/irulescan" \
       org.label-schema.vendor="Simon Kowallik"
 
@@ -76,4 +76,4 @@ COPY --from=build-image /build/artifacts /
 
 ENTRYPOINT ["irulescan"]
 
-CMD ["checkdir", "."]
+CMD ["check", "."]

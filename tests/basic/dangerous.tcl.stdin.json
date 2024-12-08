@@ -1,0 +1,9 @@
+{
+  "dangerous": [
+    "Dangerous unquoted expr at `$one` in `expr 1 + $one`"
+  ],
+  "warning": [
+    "Unquoted expr at `1` in `expr 1 + $one`",
+    "Unquoted expr at `+` in `expr 1 + $one`"
+  ]
+}

@@ -1,6 +1,9 @@
-{
-  "warning": [],
-  "dangerous": [
-    "badly formed command, cannot scan code at `while` in `while {$n < 30}      \\  {    log local0. [set n [expr $n + 30]]}`"
-  ]
-}
+[
+  {
+    "filepath": "test3.irule",
+    "warning": [],
+    "dangerous": [
+      "badly formed command, cannot scan code at `while` in `while {$n < 30}      \\  {    log local0. [set n [expr $n + 30]]}`"
+    ]
+  }
+]

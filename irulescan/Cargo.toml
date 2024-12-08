@@ -9,15 +9,17 @@ build = "src/build.rs"
 edition = "2021"
 
 [build-dependencies]
-bindgen = "= 0.69.4"
+#bindgen = "= 0.69.4"
+bindgen = "0.70.1"
 
 [dependencies]
 enum_primitive = "0.1"
 num = "0.4"
 fancy-regex = "0"
-json = "0"
 clap = { version = "4", features = ["derive"] }
 walkdir = "2"
+serde_json = "1"
+json_diff_ng = "0"
 
 [[bin]]
 

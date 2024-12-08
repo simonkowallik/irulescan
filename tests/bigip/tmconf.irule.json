@@ -1,7 +1,10 @@
-{
-  "warning": [
-    "Unquoted expr at `1` in `expr 1 `",
-    "Unquoted expr at `2` in `expr 2 `"
-  ],
-  "dangerous": []
-}
+[
+  {
+    "filepath": "tmconf.irule",
+    "warning": [
+      "Unquoted expr at `1` in `expr 1 `",
+      "Unquoted expr at `2` in `expr 2 `"
+    ],
+    "dangerous": []
+  }
+]

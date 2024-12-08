@@ -36,7 +36,7 @@ class WriteTmpfile:
         self.filename = ""
 
     async def __aenter__(self):
-        fd, tmpfile = mkstemp()
+        fd, tmpfile = mkstemp(suffix=".tcl")
         try:
             async with async_open(tmpfile, "w+") as afp:
                 await afp.write(self.__data)
@@ -58,7 +58,7 @@ class WriteTmpfile:
 
 async def irulescan(filepath: str) -> Union[dict, list]:
     """executes irulescan check on the given filepath and returns the results or throws an HTTPException"""
-    cmd = "RUST_BACKTRACE=full irulescan check --json "
+    cmd = "RUST_BACKTRACE=full irulescan check "
     cmd += shlex_quote(filepath)
     proc = await asyncio.create_subprocess_shell(
         cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
@@ -90,7 +90,7 @@ app = FastAPI(
     openapi_tags=[
         {
             "name": "irulescan",
-            "description": "static security analyzer for iRules.",
+            "description": "security analyzer for iRules.",
         },
     ],
     description="[irulescan homepage](https://github.com/simonkowallik/irulescan/)",
@@ -160,8 +160,8 @@ async def scanfiles(file: list[UploadFile]):
             results.append(
                 Result(
                     filepath=_file.filename,
-                    warning=_result.get("warning", []),
-                    dangerous=_result.get("dangerous", []),
+                    warning=_result[0].get("warning", []) if _result else [],
+                    dangerous=_result[0].get("dangerous", []) if _result else [],
                 )
             )
 
@@ -252,4 +252,7 @@ async def scan(
     ```
     """
     async with WriteTmpfile(source_code) as tmpfile:
-        return await irulescan(tmpfile.filename)
+        result = await irulescan(tmpfile.filename)
+        result = result[0]  # only one file is scanned, remove enclosing list
+        result.pop("filepath")  # remove filepath from result
+        return result

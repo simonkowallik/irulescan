@@ -38,8 +38,8 @@ RUN echo "* configure, patch, compile and install tcl" \
 ;
 
 RUN echo "* install rust nightly" \
-&&  curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2024-07-14 \
-&&  rustup component add rustfmt \
+&&  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain none -y \
+&&  rustup toolchain install nightly-2024-12-01 --profile minimal \
 ;
 
 COPY ./irulescan/Cargo.toml /build/irulescan/Cargo.toml
@@ -75,7 +75,7 @@ RUN pip3 install -r /tmp/requirements.txt --user
 FROM cgr.dev/chainguard/python:latest AS containerimage
 
 LABEL org.label-schema.name="irulescan" \
-      org.label-schema.description="irulescan: static security analyzer for iRules" \
+      org.label-schema.description="irulescan: security analyzer for iRules" \
       org.label-schema.vcs-url="https://github.com/simonkowallik/irulescan" \
       org.label-schema.vendor="Simon Kowallik"
 

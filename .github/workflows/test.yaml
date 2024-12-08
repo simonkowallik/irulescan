@@ -55,15 +55,15 @@ jobs:
       - name: Run container test on single file
         if: ${{ matrix.containers.file == 'files/Dockerfile' }}
         run: |
-          cat tests/basic/dangerous.tcl | docker run --rm -i irulescan:latest check --json - > output.json
-          jd -mset output.json tests/basic/dangerous.tcl.json || exit 1
+          cat tests/basic/dangerous.tcl | docker run --rm -i -v "$PWD/tests:/scandir/tests" \
+              irulescan:latest check -r 'tests/basic/dangerous.tcl.stdin.json' -
 
       - name: Run container tests on directory
         if: ${{ matrix.containers.file == 'files/Dockerfile' }}
         run: |
           docker run --rm -v ${PWD}/tests/basic:/scandir \
             irulescan:latest > output.json
-          jd -mset output.json tests/basic/basic.json || exit 1
+          jd -mset output.json tests/basic/irulescan_exclude_empty.json || exit 1
 
       - name: Start apiserver in background
         if: ${{ matrix.containers.file == 'files/Dockerfile.apiserver' }}
@@ -78,11 +78,11 @@ jobs:
           -F 'file=@tests/basic/ok.tcl' \
           -F 'file=@tests/basic/warning.tcl' \
           -F 'file=@tests/basic/dangerous.tcl' > output.json
-          jd -mset output.json tests/basic/basic.json || exit 1
+          jd -mset output.json tests/basic/irulescan.json || exit 1
 
       - name: Run apiserver scan test
         if: ${{ matrix.containers.file == 'files/Dockerfile.apiserver' }}
         run: |
           curl -s http://localhost:8888/scan/ \
           --data-binary '@tests/basic/dangerous.tcl' > output.json
-          jd -mset output.json tests/basic/dangerous.tcl.json || exit 1
+          jd -mset output.json tests/basic/dangerous.tcl.stdin.json || exit 1
