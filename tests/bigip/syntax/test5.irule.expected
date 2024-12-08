@@ -1,3 +1,0 @@
-DANGEROUS: missing options terminator `--` permits argument injection at `{4}` in `switch    {4} {   {4} {log local0. [expr 4]} }   `
-WARNING: Unquoted expr at `4` in `expr 4`
-

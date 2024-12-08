@@ -1,0 +1,9 @@
+[
+  {
+    "filepath": "test4.irule",
+    "warning": [],
+    "dangerous": [
+      "Dangerous unquoted expr at `$x` in `expr $x`"
+    ]
+  }
+]

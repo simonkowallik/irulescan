@@ -1,4 +1,0 @@
-DANGEROUS: Dangerous unquoted expr at `$n` in `expr $n + 30`
-WARNING: Unquoted expr at `+` in `expr $n + 30`
-WARNING: Unquoted expr at `30` in `expr $n + 30`
-

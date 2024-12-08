@@ -1,0 +1,11 @@
+[
+  {
+    "filepath": "warning.tcl",
+    "warning": [
+      "Unquoted expr at `1` in `expr 1 + 1`",
+      "Unquoted expr at `+` in `expr 1 + 1`",
+      "Unquoted expr at `1` in `expr 1 + 1`"
+    ],
+    "dangerous": []
+  }
+]

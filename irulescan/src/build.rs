@@ -1,8 +1,3 @@
-extern crate bindgen;
-
-//use std::env;
-//use std::path::PathBuf;
-
 fn main() {
     // Tell cargo to tell rustc to link the lib tcl8.4
     println!("cargo:rustc-link-lib=tcl8.4");

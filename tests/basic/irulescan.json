@@ -1,0 +1,26 @@
+[
+  {
+    "filepath": "dangerous.tcl",
+    "warning": [
+      "Unquoted expr at `1` in `expr 1 + $one`",
+      "Unquoted expr at `+` in `expr 1 + $one`"
+    ],
+    "dangerous": [
+      "Dangerous unquoted expr at `$one` in `expr 1 + $one`"
+    ]
+  },
+  {
+    "filepath": "ok.tcl",
+    "warning": [],
+    "dangerous": []
+  },
+  {
+    "filepath": "warning.tcl",
+    "warning": [
+      "Unquoted expr at `1` in `expr 1 + 1`",
+      "Unquoted expr at `+` in `expr 1 + 1`",
+      "Unquoted expr at `1` in `expr 1 + 1`"
+    ],
+    "dangerous": []
+  }
+]

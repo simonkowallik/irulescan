@@ -17,25 +17,31 @@ jobs:
         containers:
           - file: files/Dockerfile
             tags: |
-              simonkowallik/irulescan:latest
-              ghcr.io/simonkowallik/irulescan:latest
+              irulescan:latest
           - file: files/Dockerfile.apiserver
             tags: |
-              simonkowallik/irulescan:apiserver
-              ghcr.io/simonkowallik/irulescan:apiserver
+              irulescan:apiserver
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+
+      - name: Install jd
+        run: |
+          go install github.com/josephburnett/jd@v1.8.1
+          echo "$HOME/go/bin" >> $GITHUB_PATH
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Build container image
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ${{ matrix.containers.file }}
@@ -46,18 +52,37 @@ jobs:
           cache-to: type=gha,mode=max
           tags: ${{ matrix.containers.tags }}
 
-      - name: Run container tests
+      - name: Run container test on single file
         if: ${{ matrix.containers.file == 'files/Dockerfile' }}
         run: |
-          docker run --rm -v ${PWD}:/scandir \
-            simonkowallik/irulescan:latest /scandir/tests/test.sh
+          cat tests/basic/dangerous.tcl | docker run --rm -i -v "$PWD/tests:/scandir/tests" \
+              irulescan:latest check -r 'tests/basic/dangerous.tcl.stdin.json' -
 
-      - name: Run apiserver tests
+      - name: Run container tests on directory
+        if: ${{ matrix.containers.file == 'files/Dockerfile' }}
+        run: |
+          docker run --rm -v ${PWD}/tests/basic:/scandir \
+            irulescan:latest > output.json
+          jd -mset output.json tests/basic/irulescan_exclude_empty.json || exit 1
+
+      - name: Start apiserver in background
         if: ${{ matrix.containers.file == 'files/Dockerfile.apiserver' }}
         run: |
-          docker run --rm \
-            -v ${PWD}/tests/test.sh:/test-apiserver.sh \
-            -v ${PWD}/tests/test.sh:/entrypoint.sh \
-            --entrypoint /entrypoint.sh \
-            -v ${PWD}/tests:/tests \
-            simonkowallik/irulescan:apiserver /test-apiserver.sh
+          docker run --rm -p 8888:80 -d \
+            irulescan:apiserver
+
+      - name: Run apiserver scanfiles test
+        if: ${{ matrix.containers.file == 'files/Dockerfile.apiserver' }}
+        run: |
+          curl -s http://localhost:8888/scanfiles/ \
+          -F 'file=@tests/basic/ok.tcl' \
+          -F 'file=@tests/basic/warning.tcl' \
+          -F 'file=@tests/basic/dangerous.tcl' > output.json
+          jd -mset output.json tests/basic/irulescan.json || exit 1
+
+      - name: Run apiserver scan test
+        if: ${{ matrix.containers.file == 'files/Dockerfile.apiserver' }}
+        run: |
+          curl -s http://localhost:8888/scan/ \
+          --data-binary '@tests/basic/dangerous.tcl' > output.json
+          jd -mset output.json tests/basic/dangerous.tcl.stdin.json || exit 1

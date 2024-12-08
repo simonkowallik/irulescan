@@ -1,0 +1,23 @@
+[
+  {
+    "filepath": "table.irule",
+    "warning": [],
+    "dangerous": [
+      "missing options terminator `--` permits argument injection at `FOO1` in `table  set FOO1 bar1`",
+      "missing options terminator `--` permits argument injection at `ABC` in `table  set -subtable FOO3 ABC DEF`",
+      "missing options terminator `--` permits argument injection at `ABC` in `table  set -georedundancy ABC DEF`",
+      "missing options terminator `--` permits argument injection at `ABC` in `table  set -notouch -subtable FOO4 ABC DEF`",
+      "missing options terminator `--` permits argument injection at `FOO2` in `table  add FOO2 bar2`",
+      "missing options terminator `--` permits argument injection at `FOO1` in `table  replace FOO1 1`",
+      "missing options terminator `--` permits argument injection at `FOO1` in `table lookup FOO1`",
+      "missing options terminator `--` permits argument injection at `FOO1` in `table incr FOO1 1`",
+      "missing options terminator `--` permits argument injection at `ABC` in `table lookup -georedundancy ABC`",
+      "missing options terminator `--` permits argument injection at `FOO2` in `table  append FOO2 bar3`",
+      "missing options terminator `--` permits argument injection at `FOO2` in `table  delete FOO2`",
+      "missing options terminator `--` permits argument injection at `FOO1` in `table  timeout FOO1 60`",
+      "missing options terminator `--` permits argument injection at `FOO1` in `table  lifetime FOO1 60`",
+      "missing options terminator `--` permits argument injection at `FOO1` in `table timeout -remaining FOO1`",
+      "missing options terminator `--` permits argument injection at `FOO1` in `table lifetime -remaining FOO1`"
+    ]
+  }
+]
