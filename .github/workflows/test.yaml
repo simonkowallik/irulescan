@@ -63,13 +63,14 @@ jobs:
         run: |
           docker run --rm -v ${PWD}/tests/basic:/scandir \
             irulescan:latest > output.json
-          jd -mset output.json tests/basic/irulescan_exclude_empty.json || exit 1
+          jd -mset output.json tests/basic/irulescan.json || exit 1
 
       - name: Start apiserver in background
         if: ${{ matrix.containers.file == 'files/Dockerfile.apiserver' }}
         run: |
           docker run --rm -p 8888:80 -d \
             irulescan:apiserver
+          sleep 10
 
       - name: Run apiserver scanfiles test
         if: ${{ matrix.containers.file == 'files/Dockerfile.apiserver' }}

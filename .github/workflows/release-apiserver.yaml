@@ -1,4 +1,4 @@
-name: Release Container Image
+name: Release Container Image - apiserver
   
 on:
   workflow_dispatch:
