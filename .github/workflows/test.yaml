@@ -7,8 +7,8 @@ on:
   push:
     branches:
       - "main"
-  schedule:
-    - cron: '12 6 3 * *'
+  repository_dispatch:
+    types: [start-scheduled-test]
 
 jobs:
   build:
@@ -31,7 +31,7 @@ jobs:
 
       - name: Install jd
         run: |
-          go install github.com/josephburnett/jd@v1.8.1
+          go install github.com/josephburnett/jd@v1.9.1
           echo "$HOME/go/bin" >> $GITHUB_PATH
 
       - name: Set up QEMU
@@ -68,14 +68,14 @@ jobs:
       - name: Start apiserver in background
         if: ${{ matrix.containers.file == 'files/Dockerfile.apiserver' }}
         run: |
-          docker run --rm -p 8888:80 -d \
+          docker run --rm -p 8000:8000 -d \
             irulescan:apiserver
           sleep 10
 
       - name: Run apiserver scanfiles test
         if: ${{ matrix.containers.file == 'files/Dockerfile.apiserver' }}
         run: |
-          curl -s http://localhost:8888/scanfiles/ \
+          curl -s http://localhost:8000/scanfiles/ \
           -F 'file=@tests/basic/ok.tcl' \
           -F 'file=@tests/basic/warning.tcl' \
           -F 'file=@tests/basic/dangerous.tcl' > output.json
@@ -84,6 +84,6 @@ jobs:
       - name: Run apiserver scan test
         if: ${{ matrix.containers.file == 'files/Dockerfile.apiserver' }}
         run: |
-          curl -s http://localhost:8888/scan/ \
+          curl -s http://localhost:8000/scan/ \
           --data-binary '@tests/basic/dangerous.tcl' > output.json
           jd -mset output.json tests/basic/dangerous.tcl.stdin.json || exit 1
