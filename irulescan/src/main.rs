@@ -159,8 +159,14 @@ fn main() {
                 let stdin_content = read_stdin();
                 is_stdin = true;
                 script_ins.push(("STDIN".to_string(), stdin_content));
-            } else {
-                // Normal directory/file handling
+            } else if dirpath.is_file() {
+                // If dirpath is a file, read the file regardless of the file extension
+                script_ins.push((
+                    dirpath.to_str().unwrap().trim_start_matches("./").to_string(),
+                    read_file(&dirpath),
+                ));
+            } else if dirpath.is_dir() {
+                // If dirpath is a directory, read all files that match IRULE_FILE_EXTENSIONS
                 for entry in walkdir::WalkDir::new(&dirpath)
                     .into_iter()
                     .filter_map(|e| e.ok())
@@ -177,6 +183,9 @@ fn main() {
                         ));
                     }
                 }
+            } else {
+                eprintln!("ERROR: Invalid filepath: {:?}, not a file or directory", dirpath);
+                std::process::exit(1);
             }
 
             let mut preprocessed_scripts: Vec<(String, String)> = Vec::new();

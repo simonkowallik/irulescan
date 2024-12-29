@@ -107,6 +107,17 @@ irulescan check --exclude-empty-findings ./tests/basic/ | jq
 > Please note the differences in `"filepath"` between the two invocation methods.
 > This is important to consider when comparing a new scan to existing results.
 > `--exclude-empty-findings` removes the entry for the file `"ok.tcl"` as it has no findings.
+> `cd tests/basic; irulescan check . | jq` would have provided the same results as the docker command from the previous example.
+
+When specifying a file, irulescan will try to scan the file regardless of the file extension.
+
+```console
+irulescan check --no-warn tests/basic/dangerous.txt
+```
+
+```json
+[{"filepath":"tests/basic/dangerous.txt","warning":[],"dangerous":["Dangerous unquoted expr at `$one` in `expr 1 + $one`"]}]
+```
 
 ```console
 irulescan --help
@@ -210,7 +221,7 @@ The irulescan container tag `:apiserver` provides a simple Swagger / OpenAPI ser
 Start the API server:
 
 ```shell
-docker run -t --rm -p 80:80 simonkowallik/irulescan:apiserver
+docker run -t --rm -p 8000:8000 simonkowallik/irulescan:apiserver
 ```
 
 Scanning a single file / iRule code:
