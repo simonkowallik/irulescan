@@ -1,4 +1,0 @@
-when RULE_INIT priority 500 {
-switch    {4}{  
-  {4}{log local0. [expr 4]} }   
-}

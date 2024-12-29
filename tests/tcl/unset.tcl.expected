@@ -1,3 +1,0 @@
-DANGEROUS: missing options terminator `--` permits argument injection at `fail_100` in `unset fail_100 var_y var_z`
-DANGEROUS: missing options terminator `--` permits argument injection at `fail_200` in `unset -nocomplain fail_200 var_y var_z`
-
