@@ -436,7 +436,9 @@ fn make_tcltoken<'a>(tcl_token: &tcl::Tcl_Token, tokenval: &'a str, acc: &mut Ve
             subtokens
         }
         Operator => {
-            assert!(acc.len() > 0);
+            if acc.is_empty() {
+                panic!("ERROR: Invalid Operator token {:?}", tokenval)
+            }
             assert!(num_subtokens == 0);
             vec![]
         }
