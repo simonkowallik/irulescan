@@ -1,6 +1,6 @@
 fn main() {
-    // Tell cargo to tell rustc to link the lib tcl8.4
-    println!("cargo:rustc-link-lib=tcl8.4");
+    // Tell cargo to tell rustc to link the lib tcl-irulescan
+    println!("cargo:rustc-link-lib=tcl-irulescan");
 
     // The bindgen::Builder is the main entry point
     // to bindgen, and lets you build up options for
@@ -9,6 +9,8 @@ fn main() {
         // The input header we would like to generate
         // bindings for.
         .header("src/mytcl.h")
+        // Suppress warnings
+        .raw_line("#![allow(unnecessary_transmutes)]")
         // Finish the builder and generate the bindings.
         .generate()
         // Unwrap the Result and panic on failure.

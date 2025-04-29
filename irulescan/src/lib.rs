@@ -6,7 +6,7 @@ extern crate libc;
 #[macro_use]
 extern crate enum_primitive;
 
-use self::CheckResult::*; // TODO: why does swapping this line with one below break?
+use self::CheckResult::*;
 use fancy_regex::Regex;
 use rstcl::TokenType;
 use std::fmt;

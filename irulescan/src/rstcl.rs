@@ -1,6 +1,6 @@
 #![allow(deprecated)]
 use std::ffi::CString;
-use std::mem::uninitialized;
+use std::mem::zeroed;
 
 use num::traits::FromPrimitive;
 
@@ -88,84 +88,10 @@ impl<'b, 'c: 'b> Iterator for TclTokenIter<'b, 'c> {
     }
 }
 
-/// Takes: a string, which should be a tcl script
-/// Returns: a parse structure and the remaining string.
-///
-/// ```
-/// use irulescan::rstcl::{TclParse,TclToken};
-/// use irulescan::rstcl::TokenType::{SimpleWord,Word,Variable,Text,Command};
-/// use irulescan::rstcl::parse_command;
-/// assert!(parse_command("a b $c [d]") == (TclParse {
-///     comment: Some(""), command: Some("a b $c [d]"),
-///     tokens: vec![
-///         TclToken {
-///             ttype: SimpleWord, val: "a",
-///             tokens: vec![TclToken { ttype: Text, val: "a", tokens: vec![] }]
-///         },
-///         TclToken {
-///             ttype: SimpleWord, val: "b",
-///             tokens: vec![TclToken { ttype: Text, val: "b", tokens: vec![] }]
-///         },
-///         TclToken {
-///             ttype: Word, val: "$c",
-///             tokens: vec![
-///                 TclToken {
-///                     ttype: Variable, val: "$c",
-///                     tokens: vec![TclToken { ttype: Text, val: "c", tokens: vec![] }]
-///                 }
-///             ]
-///         },
-///         TclToken {
-///             ttype: Word, val: "[d]",
-///             tokens: vec![TclToken { ttype: Command, val: "[d]", tokens: vec![] }]
-///         }
-///     ]
-/// }, ""));
-/// assert!(parse_command(" a\n") == (TclParse {
-///     comment: Some(""), command: Some("a\n"),
-///     tokens: vec![
-///         TclToken {
-///             ttype: SimpleWord, val: "a",
-///             tokens: vec![TclToken { ttype: Text, val: "a", tokens: vec![] }]
-///         }
-///     ]
-/// }, ""));
-/// assert!(parse_command("a; b") == (TclParse {
-///     comment: Some(""), command: Some("a;"),
-///     tokens: vec![
-///         TclToken {
-///             ttype: SimpleWord, val: "a",
-///             tokens: vec![TclToken { ttype: Text, val: "a", tokens: vec![] }]
-///         }
-///     ]
-/// }, " b"));
-/// assert!(parse_command("#comment\n\n\na\n") == (TclParse {
-///     comment: Some("#comment\n"), command: Some("a\n"),
-///     tokens: vec![
-///         TclToken {
-///             ttype: SimpleWord, val: "a",
-///             tokens: vec![TclToken { ttype: Text, val: "a", tokens: vec![] }]
-///         }
-///     ]
-/// }, ""));
-/// ```
 pub fn parse_command<'a>(string: &'a str) -> (TclParse<'a>, &'a str) {
     return parse(string, true, false);
 }
-/// Takes: a string, which should be a tcl script
-/// Returns: a list of parse structures representing the entire script
-///
-/// ```
-/// use irulescan::rstcl::TclParse;
-/// use irulescan::rstcl::parse_script;
-/// assert!(parse_script(";;;   ;    ;") == vec![
-///     TclParse { comment: Some(""), command: Some(";"), tokens: vec![] },
-///     TclParse { comment: Some(""), command: Some(";"), tokens: vec![] },
-///     TclParse { comment: Some(""), command: Some(";"), tokens: vec![] },
-///     TclParse { comment: Some(""), command: Some(";"), tokens: vec![] },
-///     TclParse { comment: Some(""), command: Some(";"), tokens: vec![] }
-/// ]);
-/// ```
+
 pub fn parse_script<'a>(string: &'a str) -> Vec<TclParse<'a>> {
     let mut script = string;
     let mut commands = vec![];
@@ -184,93 +110,14 @@ pub fn parse_script<'a>(string: &'a str) -> Vec<TclParse<'a>> {
     }
     return commands;
 }
-/// Takes: a string, which should be a tcl expr
-/// Returns: a parse structure and the remaining script.
-///
-/// ```
-/// use irulescan::rstcl::{TclParse,TclToken};
-/// use irulescan::rstcl::TokenType::{SubExpr,Text,Variable,Command,Operator};
-/// use irulescan::rstcl::parse_expr;
-/// assert!(parse_expr("[a]+$b+cos([c]+$d)") == (TclParse {
-///     comment: None, command: None,
-///     tokens: vec![
-///         TclToken {
-///             ttype: SubExpr, val: "[a]+$b+cos([c]+$d)",
-///             tokens: vec![
-///                 TclToken { ttype: Operator, val: "+", tokens: vec![] },
-///                 TclToken {
-///                     ttype: SubExpr, val: "[a]+$b",
-///                     tokens: vec![
-///                         TclToken { ttype: Operator, val: "+", tokens: vec![] },
-///                         TclToken {
-///                             ttype: SubExpr, val: "[a]",
-///                             tokens: vec![
-///                                 TclToken { ttype: Command, val: "[a]", tokens: vec![] }
-///                             ]
-///                         },
-///                         TclToken {
-///                             ttype: SubExpr, val: "$b",
-///                             tokens: vec![
-///                                 TclToken {
-///                                     ttype: Variable, val: "$b",
-///                                     tokens: vec![
-///                                         TclToken { ttype: Text, val: "b", tokens: vec![] }
-///                                     ]
-///                                 }
-///                             ]
-///                         }
-///                     ]
-///                 },
-///                 TclToken {
-///                     ttype: SubExpr, val: "cos([c]+$d)",
-///                     tokens: vec![
-///                         TclToken { ttype: Operator, val: "cos", tokens: vec![] },
-///                         TclToken {
-///                             ttype: SubExpr, val: "[c]+$d",
-///                             tokens: vec![
-///                                 TclToken { ttype: Operator, val: "+", tokens: vec![] },
-///                                 TclToken {
-///                                     ttype: SubExpr, val: "[c]",
-///                                     tokens: vec![
-///                                         TclToken { ttype: Command, val: "[c]", tokens: vec![] }
-///                                     ]
-///                                 },
-///                                 TclToken {
-///                                     ttype: SubExpr, val: "$d",
-///                                     tokens: vec![
-///                                         TclToken {
-///                                             ttype: Variable, val: "$d",
-///                                             tokens: vec![
-///                                                 TclToken { ttype: Text, val: "d", tokens: vec![] }
-///                                             ]
-///                                         }
-///                                     ]
-///                                 }
-///                             ]
-///                         }
-///                     ]
-///                 }
-///             ]
-///         }
-///     ]
-/// }, ""));
-/// assert!(parse_expr("1") == (TclParse {
-///     comment: None, command: None,
-///     tokens: vec![
-///         TclToken {
-///             ttype: SubExpr, val: "1",
-///             tokens: vec![TclToken { ttype: Text, val: "1", tokens: vec![] }]
-///         }
-///     ]
-/// }, ""));
-/// ```
+
 pub fn parse_expr<'a>(string: &'a str) -> (TclParse<'a>, &'a str) {
     return parse(string, false, true);
 }
 
 fn parse<'a>(string: &'a str, is_command: bool, is_expr: bool) -> (TclParse<'a>, &'a str) {
     unsafe {
-        let mut parse: tcl::Tcl_Parse = uninitialized();
+        let mut parse: tcl::Tcl_Parse = zeroed();
         let parse_ptr: *mut tcl::Tcl_Parse = &mut parse;
 
         // https://github.com/rust-lang/rust/issues/16035

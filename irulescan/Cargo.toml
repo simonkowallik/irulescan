@@ -9,8 +9,7 @@ build = "src/build.rs"
 edition = "2021"
 
 [build-dependencies]
-#bindgen = "= 0.69.4"
-bindgen = "0.70.1"
+bindgen = "0.71.1"
 
 [dependencies]
 enum_primitive = "0.1"

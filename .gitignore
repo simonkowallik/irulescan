@@ -2,6 +2,7 @@
 /irulescan/target
 /irulescan/src/tcl.rs
 **/private
+**/build
 **/.ruff_cache
 .local
 .vscode
