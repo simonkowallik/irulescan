@@ -8,6 +8,7 @@ use self::TokenType::*;
 use crate::tcl;
 
 static mut I: Option<*mut tcl::Tcl_Interp> = None;
+#[allow(static_mut_refs)]
 unsafe fn tcl_interp() -> *mut tcl::Tcl_Interp {
     if I.is_none() {
         I = Some(tcl::Tcl_CreateInterp());
