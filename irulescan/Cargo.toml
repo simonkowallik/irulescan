@@ -31,7 +31,8 @@ tracing-subscriber = { version = "0", features = ["env-filter"] }
 tempfile = "3"
 # OpenAPI / Swagger UI dependencies
 utoipa = { version = "5", features = ["axum_extras"] }
-utoipa-swagger-ui = { version = "9", features = ["axum"] }
+utoipa-swagger-ui = { version = "9", features = ["axum", "vendored"] }
+utoipa-swagger-ui-vendored = "0"
 
 [[bin]]
 

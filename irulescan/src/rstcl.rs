@@ -9,12 +9,12 @@ use crate::tcl;
 
 static mut I: Option<*mut tcl::Tcl_Interp> = None;
 #[allow(static_mut_refs)]
-unsafe fn tcl_interp() -> *mut tcl::Tcl_Interp {
+unsafe fn tcl_interp() -> *mut tcl::Tcl_Interp { unsafe {
     if I.is_none() {
         I = Some(tcl::Tcl_CreateInterp());
     }
     return I.unwrap();
-}
+}}
 
 enum_from_primitive! {
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -190,7 +190,7 @@ unsafe fn make_tokens<'a>(
     string: &'a str,
     string_start: usize,
     tcl_parse: &tcl::Tcl_Parse,
-) -> Vec<TclToken<'a>> {
+) -> Vec<TclToken<'a>> { unsafe {
     let mut acc = vec![];
     for i in (0..tcl_parse.numTokens as isize).rev() {
         let tcl_token = *(tcl_parse.tokenPtr).offset(i);
@@ -202,7 +202,7 @@ unsafe fn make_tokens<'a>(
     }
     acc.reverse();
     return acc;
-}
+}}
 
 fn count_tokens(token: &TclToken) -> usize {
     token.tokens.iter().map(|t| count_tokens(t)).sum::<usize>() + 1

@@ -11,6 +11,9 @@ fn main() {
         .header("src/mytcl.h")
         // Suppress warnings
         .raw_line("#![allow(unnecessary_transmutes)]")
+        .raw_line("#![allow(unsafe_op_in_unsafe_fn)]") // E0133
+        // Wrap unsafe operations in unsafe blocks
+        .wrap_unsafe_ops(true)
         // Finish the builder and generate the bindings.
         .generate()
         // Unwrap the Result and panic on failure.

@@ -1,10 +1,11 @@
 use irulescan::rstcl;
-use serde_json::Value;
 use std::fs;
-use std::io::{self, Write};
+use std::io;
 use std::io::prelude::*;
 use std::path::Path;
 use std::path::PathBuf;
+use std::panic::{catch_unwind, AssertUnwindSafe};
+use serde_json::Value;
 use serde_json::json;
 use json_diff_ng::compare_serde_values;
 
@@ -25,15 +26,12 @@ use std::net::SocketAddr;
 use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use tempfile::NamedTempFile; // For handling file uploads
 
 // OpenAPI / Swagger UI imports
 use utoipa::{OpenApi, ToSchema, IntoParams};
 use utoipa_swagger_ui::SwaggerUi;
 
 static IRULE_FILE_EXTENSIONS: [&str; 3] = [".irule", ".irul", ".tcl"];
-
-// --- CLI Helper Functions ---
 
 fn read_file(path: &Path) -> String {
     let path_display = path.display();
@@ -85,7 +83,6 @@ fn scan_and_format_results(
                 .collect();
         }
 
-        // JSON formatting logic from results_to_json
         let mut warning = Vec::new();
         let mut dangerous = Vec::new();
 
@@ -228,6 +225,15 @@ struct ScanFilesResponseEntry {
 // --- OpenAPI Documentation Struct ---
 #[derive(OpenApi)]
 #[openapi(
+    info(
+        description = "irulescan - security analyzer for iRules",
+        title = "irulescan API",
+        version = "3.0.0",
+        ),
+    external_docs(
+        description = "irulescan documentation",
+        url = "https://simonkowallik.github.io/irulescan/"
+    ),
     paths(
         scan_handler,
         scan_files_handler,
@@ -236,7 +242,7 @@ struct ScanFilesResponseEntry {
         schemas(ScanParams, ScanFilesParams, ScanBodyResponseEntry, ScanFilesResponseEntry)
     ),
     tags(
-        (name = "irulescan", description = "iRule Scanning API")
+        (name = "irulescan", description = "irulescan API - security analyzer for iRules")
     )
 )]
 struct ApiDoc;
@@ -247,17 +253,28 @@ struct ApiDoc;
     post,
     path = "/scan",
     tag = "irulescan",
+    description = "Scan POST data for iRule security issues.",
     params(
         ScanParams
     ),
-    request_body = String,
+    request_body(
+        content = String,
+        description = "iRule code to scan",
+        example = r#"
+when HTTP_REQUEST {
+    set one 1
+    expr 1 + $one
+}
+        "#,
+    ),
     responses(
-        (status = 200, description = "Scan successful", body = [ScanBodyResponseEntry])
-    )
+        (status = 200, description = "Returns the irulescan result.", body = ScanBodyResponseEntry),
+        (status = 500, description = "Internal server error during scan", body = String)
+    ),
 )]
 async fn scan_handler(
-    Query(params): Query<ScanParams>, // Extract params from query
-    body: String, // Extract request body as String
+    Query(params): Query<ScanParams>,
+    body: String,
 ) -> impl IntoResponse {
     let script_in = body;
     let no_warn = params.no_warn.unwrap_or(false);
@@ -266,37 +283,68 @@ async fn scan_handler(
     let script = irulescan::preprocess_script(&script_in);
     let preprocessed_scripts = vec![("request_body".to_string(), script)];
 
-    let scan_results_json = scan_and_format_results(&preprocessed_scripts, no_warn, exclude_empty_findings);
+    let result = catch_unwind(AssertUnwindSafe(|| {
+        scan_and_format_results(&preprocessed_scripts, no_warn, exclude_empty_findings)
+    }));
 
-    let original_results: Vec<serde_json::Value> = scan_results_json.as_array()
-        .cloned()
-        .unwrap_or_else(Vec::new);
+    match result {
+        Ok(scan_results_json) => {
+            // Original success logic
+            let result_obj = scan_results_json
+                .as_array()
+                .and_then(|arr| arr.get(0))
+                .cloned()
+                .unwrap_or_else(|| json!({"warning": [], "dangerous": []}));
 
-    // Convert to ScanBodyResponseEntry
-    let mut response_entries: Vec<ScanBodyResponseEntry> = Vec::new();
-    for result_obj in original_results {
-        let warning: Vec<String> = serde_json::from_value(result_obj.get("warning").cloned().unwrap_or_else(|| json!([]))).unwrap_or_default();
-        let dangerous: Vec<String> = serde_json::from_value(result_obj.get("dangerous").cloned().unwrap_or_else(|| json!([]))).unwrap_or_default();
+            let warning: Vec<String> = serde_json::from_value(
+                result_obj
+                    .get("warning")
+                    .cloned()
+                    .unwrap_or_else(|| json!([]))
+            )
+            .unwrap_or_default();
 
-        response_entries.push(ScanBodyResponseEntry {
-            warning,
-            dangerous,
-        });
+            let dangerous: Vec<String> = serde_json::from_value(
+                result_obj
+                    .get("dangerous")
+                    .cloned()
+                    .unwrap_or_else(|| json!([]))
+            )
+            .unwrap_or_default();
+
+            (StatusCode::OK, Json(ScanBodyResponseEntry { warning, dangerous })).into_response()
+        }
+        Err(panic_payload) => {
+            // handle panic
+            let error_message = if let Some(s) = panic_payload.downcast_ref::<&str>() {
+                format!("Internal server error during scan: {}", s)
+            } else if let Some(s) = panic_payload.downcast_ref::<String>() {
+                format!("Internal server error during scan: {}", s)
+            } else {
+                "Internal server error during scan: Unknown panic reason".to_string()
+            };
+            tracing::error!("Panic caught in scan_handler: {}", error_message);
+            (StatusCode::INTERNAL_SERVER_ERROR, error_message).into_response()
+        }
     }
-
-    (StatusCode::OK, Json(response_entries))
 }
 
 #[utoipa::path(
     post,
     path = "/scanfiles",
     tag = "irulescan",
+    description = "Scan iRule files for security issues.",
+
     params(
         ScanFilesParams
     ),
-    request_body(content_type = "multipart/form-data", description = "iRule files to scan"),
+    request_body(
+        content_type = "multipart/form-data",
+        description = "iRule files to scan"
+    ),
     responses(
-        (status = 200, description = "Scan successful", body = [ScanFilesResponseEntry])
+        (status = 200, description = "Returns the irulescan result for all submitted files.", body = [ScanFilesResponseEntry]),
+        (status = 500, description = "Internal server error during scan of one or more files", body = String)
     )
 )]
 async fn scan_files_handler(
@@ -306,6 +354,8 @@ async fn scan_files_handler(
     let no_warn = params.no_warn.unwrap_or(false);
     let exclude_empty_findings = params.exclude_empty_findings.unwrap_or(false);
     let mut response_files: Vec<ScanFilesResponseEntry> = Vec::new();
+    let mut panic_occurred = false;
+    let mut first_panic_message = String::new();
 
     while let Some(field) = multipart.next_field().await.unwrap() {
         let name = field.file_name().unwrap_or_else(|| field.name().unwrap_or("unknown_file")).to_string();
@@ -326,24 +376,47 @@ async fn scan_files_handler(
         let script = irulescan::preprocess_script(&script_in);
         let preprocessed_scripts = vec![(name.clone(), script)];
 
-        let scan_results_json = scan_and_format_results(&preprocessed_scripts, no_warn, exclude_empty_findings);
+        let result = catch_unwind(AssertUnwindSafe(|| {
+             scan_and_format_results(&preprocessed_scripts, no_warn, exclude_empty_findings)
+        }));
 
-        if let Some(file_results_obj) = scan_results_json.as_array().and_then(|arr| arr.get(0)).cloned() {
-            // Convert Value to Vec<String>
-            let warning: Vec<String> = serde_json::from_value(file_results_obj.get("warning").cloned().unwrap_or_else(|| json!([]))).unwrap_or_default();
-            let dangerous: Vec<String> = serde_json::from_value(file_results_obj.get("dangerous").cloned().unwrap_or_else(|| json!([]))).unwrap_or_default();
+        match result {
+            Ok(scan_results_json) => {
+                if let Some(file_results_obj) = scan_results_json.as_array().and_then(|arr| arr.get(0)).cloned() {
+                    let warning: Vec<String> = serde_json::from_value(file_results_obj.get("warning").cloned().unwrap_or_else(|| json!([]))).unwrap_or_default();
+                    let dangerous: Vec<String> = serde_json::from_value(file_results_obj.get("dangerous").cloned().unwrap_or_else(|| json!([]))).unwrap_or_default();
 
-            response_files.push(ScanFilesResponseEntry {
-                filepath: name,
-                warning,
-                dangerous,
-            });
+                    response_files.push(ScanFilesResponseEntry {
+                        filepath: name,
+                        warning,
+                        dangerous,
+                    });
+                }
+            }
+            Err(panic_payload) => {
+                panic_occurred = true;
+                let error_message = if let Some(s) = panic_payload.downcast_ref::<&str>() {
+                    format!("Panic during scan of file '{}': {}", name, s)
+                } else if let Some(s) = panic_payload.downcast_ref::<String>() {
+                    format!("Panic during scan of file '{}': {}", name, s)
+                } else {
+                    format!("Panic during scan of file '{}': Unknown reason", name)
+                };
+                tracing::error!("{}", error_message);
+                if first_panic_message.is_empty() {
+                    first_panic_message = error_message;
+                }
+                // Continue processing other files, but we'll return 500 later
+            }
         }
     }
 
-    (StatusCode::OK, Json(response_files))
+    if panic_occurred {
+        (StatusCode::INTERNAL_SERVER_ERROR, first_panic_message).into_response()
+    } else {
+        (StatusCode::OK, Json(response_files)).into_response()
+    }
 }
-
 // --- Main Function ---
 #[tokio::main]
 async fn main() {
@@ -351,7 +424,6 @@ async fn main() {
 
     match args.command {
         Commands::Check { no_warn, exclude_empty_findings, reference, dirpath } => {
-            // --- Existing Check command logic --- \
             let mut script_ins: Vec<(String, String)> = Vec::new();
             
             let mut is_stdin = false;
