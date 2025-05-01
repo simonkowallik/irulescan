@@ -11,7 +11,7 @@ use fancy_regex::Regex;
 use rstcl::TokenType;
 use std::fmt;
 use std::iter;
- // Add this import
+use serde_json::json;
 
 pub mod rstcl;
 #[allow(
@@ -556,17 +556,81 @@ pub fn preprocess_script(string: &str) -> String {
     let processed_script = re_replacer(
         &processed_script,
         &Regex::new(r"rand\(\)").unwrap(),
-        &r"rand($IRULESCAN)", // this would produce a TCL syntax error
+        &r"rand(1)",
     );
+    // format according to tcl syntax, iRules are too lax
     let processed_script = re_replacer(
         &processed_script,
         &Regex::new(r"(?<!(\\|\{))\n[\s]*\{").unwrap(),
         &r" {",
     );
+    // format according to tcl syntax, iRules are too lax
     let processed_script = re_replacer(
         &processed_script,
         &Regex::new(r"(?P<token>\}|else|then|while|for)[\n\s]*\{").unwrap(),
         &r"$token {",
     );
     return processed_script;
+}
+
+pub fn scan_and_format_results(
+    preprocessed_scripts: &Vec<(String, String)>,
+    no_warn: bool,
+    exclude_empty_findings: bool,
+) -> serde_json::Value {
+    let mut result_list = Vec::new();
+
+    for (path, script) in preprocessed_scripts.iter() {
+        let mut res = scan_script(&script);
+
+        // filter out warnings if --no-warn flag is set
+        if no_warn {
+            res = res
+                .into_iter()
+                .filter(|r| match r {
+                    &CheckResult::Warn(_, _, _) => false,
+                    _ => true,
+                })
+                .collect();
+        }
+
+        let mut warning = Vec::new();
+        let mut dangerous = Vec::new();
+
+        if res.len() > 0 {
+            for check_result in res.iter() {
+                match check_result {
+                    &CheckResult::Warn(ref ctx, ref msg, ref line) => {
+                        let _ = warning.push(format!(
+                            "{} at `{}` in `{}`",
+                            msg,
+                            line,
+                            ctx.replace("\n", "")
+                        ));
+                    }
+                    &CheckResult::Danger(ref ctx, ref msg, ref line) => {
+                        let _ = dangerous.push(format!(
+                            "{} at `{}` in `{}`",
+                            msg,
+                            line,
+                            ctx.replace("\n", "")
+                        ));
+                    }
+                }
+            }
+        };
+
+        if exclude_empty_findings && warning.len() == 0 && dangerous.len() == 0 {
+            continue;
+        }
+
+        let json_entries = json!({
+            "filepath": path,
+            "warning": warning,
+            "dangerous": dangerous
+        });
+        let _ = result_list.push(json_entries);
+    }
+
+    return serde_json::json!(result_list);
 }

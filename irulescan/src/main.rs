@@ -2,34 +2,18 @@ use irulescan::rstcl;
 use std::fs;
 use std::io;
 use std::io::prelude::*;
+use std::net::SocketAddr;
 use std::path::Path;
 use std::path::PathBuf;
-use std::panic::{catch_unwind, AssertUnwindSafe};
 use serde_json::Value;
-use serde_json::json;
 use json_diff_ng::compare_serde_values;
 
 use clap::{Parser, Subcommand};
 use walkdir::WalkDir;
 
-// API Server imports
-use axum::{
-    routing::post,
-    http::StatusCode,
-    response::{IntoResponse, Json},
-    extract::{DefaultBodyLimit, Query},
-    Router,
-};
-use axum_extra::extract::Multipart;
-use serde::{Deserialize, Serialize};
-use std::net::SocketAddr;
-use tokio::net::TcpListener;
-use tower_http::trace::TraceLayer;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use irulescan::scan_and_format_results;
 
-// OpenAPI / Swagger UI imports
-use utoipa::{OpenApi, ToSchema, IntoParams};
-use utoipa_swagger_ui::SwaggerUi;
+mod apiserver;
 
 static IRULE_FILE_EXTENSIONS: [&str; 3] = [".irule", ".irul", ".tcl"];
 
@@ -61,68 +45,7 @@ fn read_stdin() -> String {
     }
     stdin_content
 }
-
-fn scan_and_format_results(
-    preprocessed_scripts: &Vec<(String, String)>,
-    no_warn: bool,
-    exclude_empty_findings: bool,
-) -> serde_json::Value {
-    let mut result_list = Vec::new();
-
-    for (path, script) in preprocessed_scripts.iter() {
-        let mut res = irulescan::scan_script(&script);
-
-        // filter out warnings if --no-warn flag is set
-        if no_warn {
-            res = res
-                .into_iter()
-                .filter(|r| match r {
-                    &irulescan::CheckResult::Warn(_, _, _) => false,
-                    _ => true,
-                })
-                .collect();
-        }
-
-        let mut warning = Vec::new();
-        let mut dangerous = Vec::new();
-
-        if res.len() > 0 {
-            for check_result in res.iter() {
-                match check_result {
-                    &irulescan::CheckResult::Warn(ref ctx, ref msg, ref line) => {
-                        let _ = warning.push(format!(
-                            "{} at `{}` in `{}`",
-                            msg,
-                            line,
-                            ctx.replace("\n", "")
-                        ));
-                    }
-                    &irulescan::CheckResult::Danger(ref ctx, ref msg, ref line) => {
-                        let _ = dangerous.push(format!(
-                            "{} at `{}` in `{}`",
-                            msg,
-                            line,
-                            ctx.replace("\n", "")
-                        ));
-                    }
-                }
-            }
-        };
-
-        if exclude_empty_findings && warning.len() == 0 && dangerous.len() == 0 {
-            continue;
-        }
-
-        let json_entries = json!({
-            "filepath": path,
-            "warning": warning,
-            "dangerous": dangerous
-        });
-        let _ = result_list.push(json_entries);
-    }
-
-    return serde_json::json!(result_list);
-}
+// --- Main Function ---
 
 #[derive(Parser)]
 #[command(name = "irulescan")]
@@ -190,233 +113,6 @@ enum Commands {
     },
 }
 
-// --- API Parameter & Schema Structs ---
-
-#[derive(Deserialize, ToSchema, IntoParams)]
-struct ScanParams {
-    #[serde(default)] // Make it optional in query
-    no_warn: Option<bool>,
-    #[serde(default)] // Make it optional in query
-    exclude_empty_findings: Option<bool>,
-}
-
-#[derive(Deserialize, ToSchema, IntoParams)]
-struct ScanFilesParams {
-    #[serde(default)] // Make it optional in query
-    no_warn: Option<bool>,
-    #[serde(default)] // Make it optional in query
-    exclude_empty_findings: Option<bool>,
-}
-
-// Define a specific response struct for scan_handler
-#[derive(Serialize, ToSchema)]
-struct ScanBodyResponseEntry {
-    warning: Vec<String>,
-    dangerous: Vec<String>,
-}
-
-#[derive(Serialize, ToSchema)] // Keep this for scan_files_handler response
-struct ScanFilesResponseEntry {
-    filepath: String,
-    warning: Vec<String>, // Use Vec<String> instead of Value for better schema
-    dangerous: Vec<String>, // Use Vec<String> instead of Value for better schema
-}
-
-// --- OpenAPI Documentation Struct ---
-#[derive(OpenApi)]
-#[openapi(
-    info(
-        description = "irulescan - security analyzer for iRules",
-        title = "irulescan API",
-        version = "3.0.0",
-        ),
-    external_docs(
-        description = "irulescan documentation",
-        url = "https://simonkowallik.github.io/irulescan/"
-    ),
-    paths(
-        scan_handler,
-        scan_files_handler,
-    ),
-    components(
-        schemas(ScanParams, ScanFilesParams, ScanBodyResponseEntry, ScanFilesResponseEntry)
-    ),
-    tags(
-        (name = "irulescan", description = "irulescan API - security analyzer for iRules")
-    )
-)]
-struct ApiDoc;
-
-// --- API Handlers ---
-
-#[utoipa::path(
-    post,
-    path = "/scan",
-    tag = "irulescan",
-    description = "Scan POST data for iRule security issues.",
-    params(
-        ScanParams
-    ),
-    request_body(
-        content = String,
-        description = "iRule code to scan",
-        example = r#"
-when HTTP_REQUEST {
-    set one 1
-    expr 1 + $one
-}
-        "#,
-    ),
-    responses(
-        (status = 200, description = "Returns the irulescan result.", body = ScanBodyResponseEntry),
-        (status = 500, description = "Internal server error during scan", body = String)
-    ),
-)]
-async fn scan_handler(
-    Query(params): Query<ScanParams>,
-    body: String,
-) -> impl IntoResponse {
-    let script_in = body;
-    let no_warn = params.no_warn.unwrap_or(false);
-    let exclude_empty_findings = params.exclude_empty_findings.unwrap_or(false);
-
-    let script = irulescan::preprocess_script(&script_in);
-    let preprocessed_scripts = vec![("request_body".to_string(), script)];
-
-    let result = catch_unwind(AssertUnwindSafe(|| {
-        scan_and_format_results(&preprocessed_scripts, no_warn, exclude_empty_findings)
-    }));
-
-    match result {
-        Ok(scan_results_json) => {
-            // Original success logic
-            let result_obj = scan_results_json
-                .as_array()
-                .and_then(|arr| arr.get(0))
-                .cloned()
-                .unwrap_or_else(|| json!({"warning": [], "dangerous": []}));
-
-            let warning: Vec<String> = serde_json::from_value(
-                result_obj
-                    .get("warning")
-                    .cloned()
-                    .unwrap_or_else(|| json!([]))
-            )
-            .unwrap_or_default();
-
-            let dangerous: Vec<String> = serde_json::from_value(
-                result_obj
-                    .get("dangerous")
-                    .cloned()
-                    .unwrap_or_else(|| json!([]))
-            )
-            .unwrap_or_default();
-
-            (StatusCode::OK, Json(ScanBodyResponseEntry { warning, dangerous })).into_response()
-        }
-        Err(panic_payload) => {
-            // handle panic
-            let error_message = if let Some(s) = panic_payload.downcast_ref::<&str>() {
-                format!("Internal server error during scan: {}", s)
-            } else if let Some(s) = panic_payload.downcast_ref::<String>() {
-                format!("Internal server error during scan: {}", s)
-            } else {
-                "Internal server error during scan: Unknown panic reason".to_string()
-            };
-            tracing::error!("Panic caught in scan_handler: {}", error_message);
-            (StatusCode::INTERNAL_SERVER_ERROR, error_message).into_response()
-        }
-    }
-}
-
-#[utoipa::path(
-    post,
-    path = "/scanfiles",
-    tag = "irulescan",
-    description = "Scan iRule files for security issues.",
-
-    params(
-        ScanFilesParams
-    ),
-    request_body(
-        content_type = "multipart/form-data",
-        description = "iRule files to scan"
-    ),
-    responses(
-        (status = 200, description = "Returns the irulescan result for all submitted files.", body = [ScanFilesResponseEntry]),
-        (status = 500, description = "Internal server error during scan of one or more files", body = String)
-    )
-)]
-async fn scan_files_handler(
-    Query(params): Query<ScanFilesParams>,
-    mut multipart: Multipart,
-) -> impl IntoResponse {
-    let no_warn = params.no_warn.unwrap_or(false);
-    let exclude_empty_findings = params.exclude_empty_findings.unwrap_or(false);
-    let mut response_files: Vec<ScanFilesResponseEntry> = Vec::new();
-    let mut panic_occurred = false;
-    let mut first_panic_message = String::new();
-
-    while let Some(field) = multipart.next_field().await.unwrap() {
-        let name = field.file_name().unwrap_or_else(|| field.name().unwrap_or("unknown_file")).to_string();
-        let data = field.bytes().await.unwrap();
-
-        let script_in = match String::from_utf8(data.to_vec()) {
-            Ok(s) => s,
-            Err(e) => {
-                tracing::warn!("Skipping file '{}': Invalid UTF-8 sequence: {}", name, e);
-                continue;
-            }
-        };
-
-        if script_in.is_empty() {
-            tracing::warn!("Skipping empty file '{}'", name);
-            continue;
-        }
-        let script = irulescan::preprocess_script(&script_in);
-        let preprocessed_scripts = vec![(name.clone(), script)];
-
-        let result = catch_unwind(AssertUnwindSafe(|| {
-             scan_and_format_results(&preprocessed_scripts, no_warn, exclude_empty_findings)
-        }));
-
-        match result {
-            Ok(scan_results_json) => {
-                if let Some(file_results_obj) = scan_results_json.as_array().and_then(|arr| arr.get(0)).cloned() {
-                    let warning: Vec<String> = serde_json::from_value(file_results_obj.get("warning").cloned().unwrap_or_else(|| json!([]))).unwrap_or_default();
-                    let dangerous: Vec<String> = serde_json::from_value(file_results_obj.get("dangerous").cloned().unwrap_or_else(|| json!([]))).unwrap_or_default();
-
-                    response_files.push(ScanFilesResponseEntry {
-                        filepath: name,
-                        warning,
-                        dangerous,
-                    });
-                }
-            }
-            Err(panic_payload) => {
-                panic_occurred = true;
-                let error_message = if let Some(s) = panic_payload.downcast_ref::<&str>() {
-                    format!("Panic during scan of file '{}': {}", name, s)
-                } else if let Some(s) = panic_payload.downcast_ref::<String>() {
-                    format!("Panic during scan of file '{}': {}", name, s)
-                } else {
-                    format!("Panic during scan of file '{}': Unknown reason", name)
-                };
-                tracing::error!("{}", error_message);
-                if first_panic_message.is_empty() {
-                    first_panic_message = error_message;
-                }
-                // Continue processing other files, but we'll return 500 later
-            }
-        }
-    }
-
-    if panic_occurred {
-        (StatusCode::INTERNAL_SERVER_ERROR, first_panic_message).into_response()
-    } else {
-        (StatusCode::OK, Json(response_files)).into_response()
-    }
-}
 // --- Main Function ---
 #[tokio::main]
 async fn main() {
@@ -572,32 +268,8 @@ async fn main() {
             println!("{:?}", rstcl::parse_script(script));
         }
         Commands::Apiserver { listen } => {
-            // --- New Apiserver command logic ---
-            tracing_subscriber::registry()
-                .with(tracing_subscriber::EnvFilter::new(
-                    std::env::var("IRULESCAN_LOG").unwrap_or_else(|_| "info".into()),
-                ))
-                .with(tracing_subscriber::fmt::layer())
-                .init();
-
-            // Build the Axum app with API routes and Swagger UI
-            let app = Router::new()
-                // Add Swagger UI endpoint first
-                .merge(SwaggerUi::new("/").url("/openapi.json", ApiDoc::openapi()))
-                // API routes
-                .route("/scan", post(scan_handler))
-                .route("/scan/", post(scan_handler)) // Keep trailing slash variant?
-                .route("/scanfiles", post(scan_files_handler))
-                .route("/scanfiles/", post(scan_files_handler)) // Keep trailing slash variant?
-                // Layers
-                .layer(TraceLayer::new_for_http())
-                .layer(DefaultBodyLimit::max(10 * 1024 * 1024)); // 10MB limit
-
-            tracing::info!("irulescan API listening on {}", listen);
-            tracing::info!("Swagger UI available at /");
-            tracing::info!("OpenAPI 3.1 spec available at /openapi.json");
-            let listener = TcpListener::bind(listen).await.unwrap();
-            axum::serve(listener, app).await.unwrap();
+            // Call the function from the apiserver module
+            apiserver::run_apiserver(listen).await;
         }
     }
 }
