@@ -1,5 +1,57 @@
 #!/bin/bash
 
+function run-cli-tests-checkref {
+    start_dir=$(pwd)
+    failures=0
+    for file in $(find . |grep -e '.tcl$' -e '.irule$'); do
+        cd "$(dirname "$file")"
+        json_file="$(basename "$file").json"
+        if [[ -f "$json_file" ]]; then
+            echo -n "running test: $json_file: "
+            irulescan checkref "$json_file"
+            if [[ $? -ne 0 ]]; then
+                echo "fail"
+                failures=$((failures + 1))
+            fi
+        else
+            echo "skipping test: $file: no json file found"
+        fi
+        cd "$start_dir"
+    done
+    echo "* total failures: $failures"
+    if [[ $failures -ne 0 ]]; then
+        echo "FAIL"
+        exit 1
+    fi
+}
+
+function run-cli-tests {
+    if ! command -v jd &> /dev/null; then
+        echo "jq required but not installed. Skipping tests."
+        exit
+    fi
+    start_dir=$(pwd)
+    failures=0
+    for file in $(find . |grep -e '.tcl$' -e '.irule$'); do
+        cd "$(dirname "$file")"
+        json_file="$(basename "$file").json"
+        if [[ -f "$json_file" ]]; then
+            echo -n "running test: $json_file: "
+            irulescan check "$file" > output.json
+            jd -mset output.json "$json_file" || ( echo "fail" && failures=$((failures + 1)) )
+            rm -f output.json
+        else
+            echo "skipping test: $file: no json file found"
+        fi
+        cd "$start_dir"
+    done
+    echo "* total failures: $failures"
+    if [[ $failures -ne 0 ]]; then
+        echo "FAIL"
+        exit 1
+    fi
+}
+
 function build-container-apiserver {
     docker build -t irulescan:apiserver -f files/Dockerfile.apiserver .
 }

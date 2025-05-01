@@ -1,1 +1,7 @@
-[{"filepath":"dangerous.tcl","warning":[],"dangerous":["Dangerous unquoted expr at `$one` in `expr 1 + $one`"]}]
+[
+  {
+    "filepath": "dangerous.tcl",
+    "warning": [],
+    "dangerous": ["Dangerous unquoted expr at `$one` in `expr 1 + $one`"]
+  }
+]
