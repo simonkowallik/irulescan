@@ -57,15 +57,16 @@ RUN echo "* download and verify tcl" \
 &&  sha256sum -c "$TCL_ARCHIVE".sha256 \
 ;
 
-COPY files/irule_expressions_tcl8.4.20.patch ./
+COPY files/irulescan_tcl8.4.20.patch ./
 RUN echo "* configure, patch, compile and install tcl" \
 &&  tar xzf "$TCL_ARCHIVE" \
-&&  patch -p0 < irule_expressions_tcl8.4.20.patch \
+&&  patch -p0 < irulescan_tcl8.4.20.patch \
 &&  cd tcl8.4.20/unix \
-&&  LDFLAGS="-Wl,-soname,libtcl-irulescan.so" ./configure --enable-64bit --prefix=/usr \
+&&  ./configure --enable-64bit --prefix=/usr \
 &&  make \
 &&  sudo make install-strip \
 &&  sudo mv /usr/lib/libtcl8.4.so /usr/lib/libtcl-irulescan.so \
+&&  sudo strip /usr/lib/libtcl-irulescan.so \
 ;
 
 RUN echo "* install rust nightly" \
