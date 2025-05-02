@@ -1,0 +1,80 @@
+vars:
+  package: libtcl-irulescan
+  version: 3.0.0
+  tcl-source-location: http://archive.ubuntu.com/ubuntu/pool/universe/t/tcl8.4/tcl8.4_8.4.20.orig.tar.gz
+  tcl-expected-sha256: fcb317b65c69f1d6962057c5622a80980bc22ffadf25c1cc50b6d02ff6c2cf40
+  subdir: ./unix
+  patch: irulescan_tcl8.4.20.patch
+package:
+  name: ${{vars.package}}
+  version: ${{vars.version}}
+  epoch: 0
+  description: "tcl library for irulescan"
+  copyright:
+    - license: MIT
+  target-architecture:
+    - x86_64
+    - aarch64
+
+environment:
+  contents:
+    keyring:
+      - https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
+    repositories:
+      - https://packages.wolfi.dev/os
+    packages:
+      - ca-certificates-bundle
+      - build-base
+      - busybox
+
+pipeline:
+  - uses: fetch
+    with:
+      uri: ${{vars.tcl-source-location}}
+      expected-sha256: ${{vars.tcl-expected-sha256}}
+
+  - uses: patch
+    with:
+      patches: ${{vars.patch}}
+
+  - uses: autoconf/configure
+    with:
+      dir: ${{vars.subdir}}
+      opts: |
+        --enable-64bit \
+        --prefix=/usr
+
+  - uses: autoconf/make
+    with:
+      dir: ${{vars.subdir}}
+      opts: libtcl8.4.so
+
+  - uses: strip
+  - runs: |
+      ls -l
+      ls -l ../
+  - runs: |
+      mkdir -p "${{targets.contextdir}}"/usr/lib
+      mkdir -p "${{targets.contextdir}}"/usr/share/licenses/tcl8.4
+      mkdir -p "${{targets.contextdir}}"/usr/share/licenses/irulescan
+
+      cp "${{package.srcdir}}/${{vars.subdir}}"/libtcl8.4.so "${{targets.contextdir}}"/usr/lib/libtcl-irulescan.so
+
+      cp "${{package.srcdir}}"/license.terms "${{targets.contextdir}}"/usr/share/licenses/tcl8.4/license.terms
+      cp "${{package.srcdir}}"/${{vars.patch}} "${{targets.contextdir}}"/usr/share/licenses/irulescan/${{vars.patch}}
+
+subpackages:
+  - name: "libtcl-irulescan-dev"
+    description: "Development files for libtcl-irulescan"
+    pipeline:
+      - runs: |
+          mkdir -p "${{targets.contextdir}}"/usr/include
+          mkdir -p "${{targets.contextdir}}"/usr/share/licenses/tcl8.4
+          mkdir -p "${{targets.contextdir}}"/usr/share/licenses/irulescan
+
+          cp "${{package.srcdir}}"/generic/tcl.h "${{targets.contextdir}}"/usr/include/tcl.h
+          cp "${{package.srcdir}}"/generic/tclDecls.h "${{targets.contextdir}}"/usr/include/tclDecls.h
+          cp "${{package.srcdir}}"/generic/tclPlatDecls.h "${{targets.contextdir}}"/usr/include/tclPlatDecls.h
+
+          cp "${{package.srcdir}}"/license.terms "${{targets.contextdir}}"/usr/share/licenses/tcl8.4/license.terms
+          cp "${{package.srcdir}}"/${{vars.patch}} "${{targets.contextdir}}"/usr/share/licenses/irulescan/${{vars.patch}}

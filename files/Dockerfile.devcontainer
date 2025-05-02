@@ -3,19 +3,14 @@ FROM cgr.dev/chainguard/wolfi-base AS build-image
 RUN echo "* install packages" \
 &&  apk update \
 &&  apk add \
-          curl \
-          make \
-          patch \
-          gcc-13 \
-          clang-15 \
-          glibc-dev \
-&& ln -sf /usr/bin/gcc-13 /usr/bin/gcc \
+          build-base \
 ;
 
 RUN echo "* install devcontainer and vscode requirements" \
     && apk update \
     && apk add --no-cache \
         git \
+        docker \
         openssh-client \
         sudo \
         bash \
@@ -57,17 +52,17 @@ RUN echo "* download and verify tcl" \
 &&  sha256sum -c "$TCL_ARCHIVE".sha256 \
 ;
 
-COPY files/irulescan_tcl8.4.20.patch ./
-RUN echo "* configure, patch, compile and install tcl" \
-&&  tar xzf "$TCL_ARCHIVE" \
-&&  patch -p0 < irulescan_tcl8.4.20.patch \
-&&  cd tcl8.4.20/unix \
-&&  ./configure --enable-64bit --prefix=/usr \
-&&  make \
-&&  sudo make install-strip \
-&&  sudo mv /usr/lib/libtcl8.4.so /usr/lib/libtcl-irulescan.so \
-&&  sudo strip /usr/lib/libtcl-irulescan.so \
-;
+#COPY files/irulescan_tcl8.4.20.patch ./
+#RUN echo "* configure, patch, compile and install tcl" \
+#&&  tar xzf "$TCL_ARCHIVE" \
+#&&  patch -p0 < irulescan_tcl8.4.20.patch \
+#&&  cd tcl8.4.20/unix \
+#&&  ./configure --enable-64bit --prefix=/usr \
+#&&  make \
+#&&  sudo make install-strip \
+#&&  sudo mv /usr/lib/libtcl8.4.so /usr/lib/libtcl-irulescan.so \
+#&&  sudo strip /usr/lib/libtcl-irulescan.so \
+#;
 
 RUN echo "* install rust nightly" \
 &&  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain none -y \

@@ -184,6 +184,15 @@
  		infoPtr->next = src+2;
 --- tcl8.4.20.orig/unix/configure
 +++ tcl8.4.20/unix/configure
+@@ -777,7 +777,7 @@
+ #line 778 "configure"
+ #include "confdefs.h"
+ 
+-main(){return(0);}
++int main(){return(0);}
+ EOF
+ if { (eval echo configure:783: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+   ac_cv_prog_cc_works=yes
 @@ -3187,7 +3187,7 @@
  		SHLIB_LD='${CC} -shared ${CFLAGS} ${LDFLAGS}'
  		DL_OBJS="tclLoadDl.o"
@@ -193,3 +202,33 @@
  		if test $doRpath = yes ; then
  		    CC_SEARCH_FLAGS='-Wl,-rpath,${LIB_RUNTIME_DIR}'
  		fi
+@@ -7468,14 +7468,7 @@
+     LIBOBJS="$LIBOBJS strtod.o"
+ fi
+ 
+-#--------------------------------------------------------------------
+-#	Under Solaris 2.4, strtod returns the wrong value for the
+-#	terminating character under some conditions.  Check for this
+-#	and if the problem exists use a substitute procedure
+-#	"fixstrtod" that corrects the error.
+-#--------------------------------------------------------------------
+ 
+-
+     echo $ac_n "checking for strtod""... $ac_c" 1>&6
+ echo "configure:7481: checking for strtod" >&5
+ if eval "test \"`echo '$''{'ac_cv_func_strtod'+set}'`\" = set"; then
+@@ -7573,14 +7566,6 @@
+ 
+ fi
+ 
+-echo "$ac_t""$tcl_cv_strtod_buggy" 1>&6
+-	if test "$tcl_cv_strtod_buggy" = buggy; then
+-	    LIBOBJS="$LIBOBJS fixstrtod.o"
+-	    cat >> confdefs.h <<\EOF
+-#define strtod fixstrtod
+-EOF
+-
+-	fi
+     fi
+ 
+ 
