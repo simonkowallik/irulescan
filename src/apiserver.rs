@@ -10,8 +10,13 @@ use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use tokio::net::TcpListener;
-use tower_http::trace::TraceLayer;
+use tower_http::{
+    LatencyUnit,
+    trace::{TraceLayer, DefaultMakeSpan, DefaultOnRequest, DefaultOnResponse, DefaultOnFailure},
+};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use tracing::Level;
+
 use utoipa::{OpenApi, ToSchema, IntoParams};
 use utoipa_swagger_ui::SwaggerUi;
 use serde_json::json;
@@ -250,11 +255,11 @@ async fn scan_files_handler(
 pub(crate) async fn run_apiserver(listen_addr: SocketAddr) {
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(
-            std::env::var("IRULESCAN_LOG").unwrap_or_else(|_| "info".into()), // default level info
+            std::env::var("IRULESCAN_LOG")
+                .unwrap_or_else(|_| "info,tower_http::trace=info".into()), // Correct filter for TraceLayer info logs
         ))
         .with(tracing_subscriber::fmt::layer())
         .init();
-
     // API routes and Swagger UI
     let app = Router::new()
         .merge(SwaggerUi::new("/").url("/openapi.json", ApiDoc::openapi()))
@@ -263,7 +268,12 @@ pub(crate) async fn run_apiserver(listen_addr: SocketAddr) {
         .route("/scan/", post(scan_handler)) // trailing slash variant
         .route("/scanfiles", post(scan_files_handler))
         .route("/scanfiles/", post(scan_files_handler)) // trailing slash variant
-        .layer(TraceLayer::new_for_http())
+        .layer(TraceLayer::new_for_http()
+            .make_span_with(DefaultMakeSpan::new().include_headers(true))
+            .on_request(DefaultOnRequest::new().level(Level::INFO))
+            .on_response(DefaultOnResponse::new().level(Level::INFO).latency_unit(LatencyUnit::Micros))
+            .on_failure(DefaultOnFailure::new().level(Level::ERROR))
+        )
         .layer(DefaultBodyLimit::max(10 * 1024 * 1024)); // 10MB limit
 
     tracing::info!("irulescan API listening on {}", listen_addr);
