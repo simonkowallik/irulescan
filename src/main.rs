@@ -14,6 +14,7 @@ use walkdir::WalkDir;
 use irulescan::scan_and_format_results;
 
 mod apiserver;
+mod mcpserver;
 
 static IRULE_FILE_EXTENSIONS: [&str; 3] = [".irule", ".irul", ".tcl"];
 
@@ -104,11 +105,16 @@ enum Commands {
         script_str: String,
     },
 
-    /// Start the API server
-    #[command(arg_required_else_help = false)]
+    /// Run as an MCP server
+    Mcpserver {
+        /// listening addr, e.g. 127.0.0.1:8000 or 0.0.0.0:1234
+        #[arg(long)]
+        listen: SocketAddr,
+    },
+    /// Start the HTTP API server
     Apiserver {
-        /// IP address and port to listen on (e.g., 127.0.0.1:8000)
-        #[arg(long, value_name = "IP:PORT", default_value = "127.0.0.1:8000")]
+        /// listen socket
+        #[arg(long)]
         listen: SocketAddr,
     },
 }
@@ -266,6 +272,10 @@ async fn main() {
             };
             let script = &irulescan::preprocess_script(&script_in);
             println!("{:?}", rstcl::parse_script(script));
+        }
+        Commands::Mcpserver { listen } => {
+            // Call the refactored function from the mcpserver module
+            mcpserver::run_mcpserver(listen).await;
         }
         Commands::Apiserver { listen } => {
             // Call the function from the apiserver module
