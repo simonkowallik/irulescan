@@ -65,7 +65,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Scan all iRules in a directory (recursively) or the specified file.
+    /// Scan all iRules in a directory (recursively) or the specified file or - for stdin.
     #[command(arg_required_else_help = true, long_about = "Scan all iRules in a directory (recursively) or the specified file. Processes iRules with non-case sensitive file extensions: .irule, .irul, .tcl and outputs JSON array of objects (results).")]
     Check {
         /// Suppress findings of type "warning"
@@ -105,15 +105,15 @@ enum Commands {
         script_str: String,
     },
 
-    /// Run as an MCP server
+    /// Run MCP server (HTTP stream transport)
     Mcpserver {
-        /// listening addr, e.g. 127.0.0.1:8000 or 0.0.0.0:1234
+        /// listening addr, e.g. 127.0.0.1:8000 or 0.0.0.0:80
         #[arg(long)]
         listen: SocketAddr,
     },
-    /// Start the HTTP API server
+    /// Run HTTP API server (OpenAPI v3)
     Apiserver {
-        /// listen socket
+        /// listening addr, e.g. 127.0.0.1:8000 or 0.0.0.0:80
         #[arg(long)]
         listen: SocketAddr,
     },

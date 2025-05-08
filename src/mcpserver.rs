@@ -68,12 +68,16 @@ impl Scanner {
 impl ServerHandler for Scanner {
     fn get_info(&self) -> ServerInfo {
         ServerInfo {
-            protocol_version: ProtocolVersion::V_2024_11_05,
+            protocol_version: ProtocolVersion::LATEST,
             capabilities: ServerCapabilities::builder()
                 .enable_tools()
                 .build(),
             server_info: Implementation::from_build_env(),
-            instructions: Some("This server provides an iRule scanning service. Use the 'scan' tool to check iRules for security issues.".to_string()),
+            instructions: Some(r#"
+This server provides an iRule scanning service powered by irulescan.
+Use the 'scan' tool to check iRules for security issues."#
+            .to_string()
+            ),
         }
     }
 

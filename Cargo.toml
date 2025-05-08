@@ -33,9 +33,8 @@ tempfile = "3.19.1"
 utoipa = { version = "5.3.1", features = ["axum_extras"] }
 utoipa-swagger-ui = { version = "9.0.1", features = ["axum", "vendored"] }
 utoipa-swagger-ui-vendored = "0.1.2"
-# MCP
-#rmcp = { version = "0.1.5", features = ["server", "transport-sse-server", "transport-streamable-http-server"] }
-rmcp = { git = "https://github.com/modelcontextprotocol/rust-sdk", branch = "main", features = ["transport-streamable-http-server"] }
+# MCP - bleeding edge (dev) to support streamable http transport
+rmcp = { git = "https://github.com/modelcontextprotocol/rust-sdk", rev = "57e14c56e85deebc434eb11e4866e3f5ec77d906", features = ["transport-streamable-http-server"] }
 anyhow = "1.0.98"
 async-trait = "0.1.88"
 tokio-util = "0.7.15"
