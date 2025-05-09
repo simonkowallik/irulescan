@@ -36,6 +36,7 @@ pub struct TclParse<'a> {
     pub comment: Option<&'a str>,
     pub command: Option<&'a str>,
     pub tokens: Vec<TclToken<'a>>,
+    pub line_number: usize, // 1-based line number
 }
 #[derive(Debug, PartialEq)]
 pub struct TclToken<'a> {
@@ -93,21 +94,87 @@ pub fn parse_command<'a>(string: &'a str) -> (TclParse<'a>, &'a str) {
     return parse(string, true, false);
 }
 
-pub fn parse_script<'a>(string: &'a str) -> Vec<TclParse<'a>> {
-    let mut script = string;
+pub fn parse_script<'a>(script_content: &'a str) -> Vec<TclParse<'a>> {
     let mut commands = vec![];
-    while script.len() > 0 {
-        let (parse, remaining) = parse_command(script);
-        // Make sure commandless parse only happens at the end or at a semicolon
-        assert!(
-            parse.tokens.len() > 0 || remaining.len() == 0 || parse.command == Some(";"),
-            "S:`{}` P:{:?} R:`{}`",
-            script,
-            parse,
-            remaining
-        );
-        script = remaining;
-        commands.push(parse);
+    let mut current_script_ptr = script_content;
+    // absolute_base_line_number is the 0-indexed line number in the original script_content
+    // where the current_script_ptr begins.
+    let mut absolute_base_line_number = 0;
+
+    while !current_script_ptr.is_empty() {
+        // Skip leading whitespace from current_script_ptr and update absolute_base_line_number
+        let original_len = current_script_ptr.len();
+        let trimmed_script_ptr = current_script_ptr.trim_start();
+        let leading_whitespace_len = original_len - trimmed_script_ptr.len();
+
+        if leading_whitespace_len > 0 {
+            absolute_base_line_number += current_script_ptr[..leading_whitespace_len].matches('\n').count();
+        }
+        current_script_ptr = trimmed_script_ptr;
+
+        if current_script_ptr.is_empty() {
+            break;
+        }
+
+        // Now, current_script_ptr starts with a non-whitespace character (or is empty)
+        // The line number reported by parse_command will be relative to this current_script_ptr
+        let (mut parse_result, remaining_segment_after_command) = parse_command(current_script_ptr);
+
+        // Adjust line_number to be absolute (1-based) with respect to original script_content
+        // parse_result.line_number is 1-based relative to current_script_ptr
+        parse_result.line_number = absolute_base_line_number + parse_result.line_number;
+        
+        let consumed_len_by_parse_command = current_script_ptr.len() - remaining_segment_after_command.len();
+
+        // Add to commands list
+        if parse_result.command.is_some() { // Indicates a successful parse or a structured error from `parse`
+            let is_error_placeholder = parse_result.command == Some("") && parse_result.tokens.is_empty();
+            // A command is meaningful if it has a non-empty command string or tokens.
+            // Also add error placeholders if they consumed part of the script, or if the script part was not empty.
+            let is_meaningful_command = parse_result.command.map_or(false, |c| !c.is_empty()) || !parse_result.tokens.is_empty();
+
+            if is_meaningful_command {
+                commands.push(parse_result);
+            } else if is_error_placeholder {
+                // If it's an error placeholder, only add it if it represents a segment of the script
+                // that couldn't be parsed but wasn't just whitespace.
+                // consumed_len_by_parse_command would be 0 if parse_command errored on an empty string or
+                // returned "" for remaining.
+                // If current_script_ptr (which was passed to parse_command) was not empty and
+                // consumed_len_by_parse_command is 0, it means parse_command failed at the very start.
+                if consumed_len_by_parse_command > 0 || !current_script_ptr.is_empty() {
+                     commands.push(parse_result);
+                }
+            }
+        }
+
+
+        if consumed_len_by_parse_command == 0 {
+            // If parse_command consumed nothing (e.g., error on empty string, or Tcl_ParseCommand itself advanced 0)
+            // and current_script_ptr is not empty, we need to advance to avoid an infinite loop.
+            if !current_script_ptr.is_empty() {
+                // Advance past the first line to try to find the next command.
+                if let Some(next_newline_pos) = current_script_ptr.find('\n') {
+                    absolute_base_line_number += 1; // Consumed one line
+                    current_script_ptr = &current_script_ptr[next_newline_pos + 1..];
+                } else {
+                    // No more newlines, so the rest of the script is effectively one line.
+                    // Since nothing was consumed, we break to avoid looping on the same content.
+                    break;
+                }
+                // Continue the loop to parse the advanced script pointer
+                if !current_script_ptr.is_empty() { continue; } else { break; }
+            } else {
+                 // current_script_ptr is empty, and consumed_len is 0, so we are done.
+                break;
+            }
+        }
+
+        // Update absolute_base_line_number based on newlines in the consumed part of current_script_ptr
+        let consumed_text_segment = &current_script_ptr[..consumed_len_by_parse_command];
+        absolute_base_line_number += consumed_text_segment.matches('\n').count();
+        
+        current_script_ptr = remaining_segment_after_command;
     }
     return commands;
 }
@@ -118,56 +185,87 @@ pub fn parse_expr<'a>(string: &'a str) -> (TclParse<'a>, &'a str) {
 
 fn parse<'a>(string: &'a str, is_command: bool, is_expr: bool) -> (TclParse<'a>, &'a str) {
     unsafe {
-        let mut parse: tcl::Tcl_Parse = zeroed();
-        let parse_ptr: *mut tcl::Tcl_Parse = &mut parse;
+        let mut parse_struct: tcl::Tcl_Parse = zeroed();
+        let parse_ptr: *mut tcl::Tcl_Parse = &mut parse_struct;
 
-        // https://github.com/rust-lang/rust/issues/16035
         let string_cstr = CString::new(string.as_bytes()).unwrap();
         let string_ptr = string_cstr.as_ptr();
-        let string_start = string_ptr as usize;
+        let string_start_addr = string_ptr as usize;
 
-        let parsed = match (is_command, is_expr) {
-            // interp, start, numBytes, nested, parsePtr
+        let parsed_status = match (is_command, is_expr) {
             (true, false) => tcl::Tcl_ParseCommand(tcl_interp(), string_ptr, -1, 0, parse_ptr),
-            // interp, start, numBytes, parsePtr
             (false, true) => tcl::Tcl_ParseExpr(tcl_interp(), string_ptr, -1, parse_ptr),
-            parse_args => panic!("UNPARSABLE: Don't know how to parse {:?}", parse_args),
+            _ => panic!("UNPARSABLE: Invalid parse configuration"),
         };
-        if parsed != 0 {
-            println!("UNPARSABLE: couldn't parse {}", string);
+
+        let mut calculated_line_number = 1; // 1-based, relative to the input 'string'
+
+        if parsed_status != 0 {
+            // Attempt to find line number even on parse error if commandStart is valid
+            if is_command && !parse_struct.commandStart.is_null() {
+                 let command_start_offset = parse_struct.commandStart as usize - string_start_addr;
+                 if command_start_offset <= string.len() { // Check bounds
+                    let prefix_to_command = &string[0..command_start_offset];
+                    calculated_line_number = 1 + prefix_to_command.matches('\n').count();
+                 }
+            }
+            // eprintln!("UNPARSABLE: couldn\\'t parse: \\'{}\\'", string);
+            tcl::Tcl_FreeParse(parse_ptr);
             return (
                 TclParse {
-                    comment: Some(""),
-                    command: Some(""),
+                    comment: Some(""), 
+                    command: Some(""), // Error indicated by Some("") and empty tokens
                     tokens: vec![],
+                    line_number: calculated_line_number,
                 },
-                "",
+                "", // Tcl_Parse* documentation implies it tries to parse as much as possible.
+                    // On error, the remaining string isn't clearly defined by the API for partial success.
+                    // Returning "" simplifies error handling upstream, assuming the error applies to the whole input string.
             );
         }
-        let tokens = make_tokens(string, string_start, &parse);
 
-        let (tclparse, remaining) = match (is_command, is_expr) {
+        // If parse was successful
+        if is_command {
+            if !parse_struct.commandStart.is_null() {
+                let command_start_offset = parse_struct.commandStart as usize - string_start_addr;
+                if command_start_offset <= string.len() { // Bounds check
+                    let prefix_to_command = &string[0..command_start_offset];
+                    calculated_line_number = 1 + prefix_to_command.matches('\n').count();
+                }
+            } else {
+                // commandStart is null on successful parse. This can happen if \'string\' is empty
+                // or contains only comments/whitespace that Tcl_ParseCommand skips entirely
+                // before finding any command. In such cases, commandSize would be 0.
+                // The line number relative to \'string\' is 1.
+                calculated_line_number = 1;
+            }
+        }
+        // For expressions (is_expr = true), calculated_line_number remains 1 (relative to the expression string itself)
+
+        let tokens = make_tokens(string, string_start_addr, &parse_struct);
+
+        let (tclparse_result, remaining_str) = match (is_command, is_expr) {
             (true, false) => {
-                assert!(tokens.len() == parse.numWords as usize);
-                // commentStart seems to be undefined if commentSize == 0
-                let comment = Some(match parse.commentSize as usize {
+                assert!(tokens.len() == parse_struct.numWords as usize);
+                let comment_str = Some(match parse_struct.commentSize as usize {
                     0 => "",
                     l => {
-                        let offset = parse.commentStart as usize - string_start;
+                        let offset = parse_struct.commentStart as usize - string_start_addr;
                         &string[offset..offset + l]
                     }
                 });
-                let command_len = parse.commandSize as usize;
-                let command_off = parse.commandStart as usize - string_start;
-                let command = Some(&string[command_off..command_off + command_len]);
-                let remaining = &string[command_off + command_len..];
+                let command_len = parse_struct.commandSize as usize;
+                let command_off = parse_struct.commandStart as usize - string_start_addr;
+                let command_val = Some(&string[command_off..command_off + command_len]);
+                let remaining_after_command = &string[command_off + command_len..];
                 (
                     TclParse {
-                        comment: comment,
-                        command: command,
+                        comment: comment_str,
+                        command: command_val,
                         tokens: tokens,
+                        line_number: calculated_line_number,
                     },
-                    remaining,
+                    remaining_after_command,
                 )
             }
             (false, true) => (
@@ -175,14 +273,15 @@ fn parse<'a>(string: &'a str, is_command: bool, is_expr: bool) -> (TclParse<'a>,
                     comment: None,
                     command: None,
                     tokens: tokens,
+                    line_number: 1, // Expressions are parsed as a single unit, line is 1 relative to expr string
                 },
-                "",
+                "", // Tcl_ParseExpr consumes the whole string or errors
             ),
-            _ => panic!("UNPARSABLE: Unreachable"),
+            _ => panic!("UNPARSABLE: Unreachable state after successful parse"),
         };
 
         tcl::Tcl_FreeParse(parse_ptr);
-        return (tclparse, remaining);
+        return (tclparse_result, remaining_str);
     }
 }
 
