@@ -21,15 +21,17 @@ pub struct ScanRequest {
 }
 
 #[derive(Clone)]
-pub struct Irulescan;
+pub struct Irulescan {
+    include_good_practices: bool,
+}
 
 #[tool(tool_box)]
 impl Irulescan {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(include_good_practices: bool) -> Self {
+        Self { include_good_practices }
     }
 
-    #[tool(description = "Scan an iRule for security issues")]
+    #[tool(description = "Scan and analyse F5 iRule code for security issues")]
     async fn scan(
         &self,
         #[tool(aggr)] ScanRequest { irule }: ScanRequest,
@@ -43,9 +45,13 @@ impl Irulescan {
 
         match result {
             Ok(scan_results) => {
-                // Extract results for the single entry
+                // Extract results for the single entry, add good practices if requested
                 if let Some(result_obj) = scan_results.as_array().and_then(|arr| arr.get(0)) {
-                    let content = Content::json(result_obj.clone())?;
+                    let mut result_map = result_obj.as_object().cloned().unwrap_or_else(serde_json::Map::new);
+                    if self.include_good_practices {
+                        result_map.insert("good_practices".to_string(), serde_json::Value::String(GOOD_PRACTICES_CONTENT.to_string()));
+                    }
+                    let content = Content::json(serde_json::Value::Object(result_map))?;
                     Ok(CallToolResult::success(vec![content]))
                 } else {
                     let content = Content::json(json!({"warning": [], "dangerous": []}))?;
@@ -116,20 +122,9 @@ Use the 'irulescan://good-practices' resource to get a list of iRule security be
             _ => Err(McpError::resource_not_found("resource_not_found",Some(json!({"uri": uri})))),
         }
     }
-
-    async fn list_resource_templates(
-        &self,
-        _request: Option<PaginatedRequestParam>,
-        _: RequestContext<RoleServer>,
-    ) -> Result<ListResourceTemplatesResult, McpError> {
-        Ok(ListResourceTemplatesResult {
-            next_cursor: None,
-            resource_templates: Vec::new(),
-        })
-    }
 }
 
-pub async fn run_mcpserver(listen_addr: SocketAddr) {
+pub async fn run_mcpserver(listen_addr: SocketAddr, include_good_practices: bool) {
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(
             std::env::var("IRULESCAN_LOG")
@@ -142,9 +137,8 @@ pub async fn run_mcpserver(listen_addr: SocketAddr) {
 
     match StreamableHttpServer::serve(listen_addr).await {
         Ok(server) => {
-            let server_with_service = server.with_service(Irulescan::new);
+            let server_with_service = server.with_service(move || Irulescan::new(include_good_practices));
             if let Ok(_) = tokio::signal::ctrl_c().await {
-                tracing::info!("Shutting down...");
                 server_with_service.cancel();
             }
         },

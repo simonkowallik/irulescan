@@ -107,13 +107,17 @@ enum Commands {
 
     /// Run MCP server (HTTP stream transport)
     Mcpserver {
-        /// listening addr, e.g. 127.0.0.1:8000 or 0.0.0.0:80
+        /// listening addr, eg. 127.0.0.1:8000 or 0.0.0.0:80
         #[arg(long)]
         listen: SocketAddr,
+
+        /// Include iRule security good practices in scan results to provide additional context to the LLM.
+        #[arg(long)]
+        include_good_practices: bool,
     },
     /// Run HTTP API server (OpenAPI v3)
     Apiserver {
-        /// listening addr, e.g. 127.0.0.1:8000 or 0.0.0.0:80
+        /// listening addr, eg. 127.0.0.1:8000 or 0.0.0.0:80
         #[arg(long)]
         listen: SocketAddr,
     },
@@ -208,7 +212,7 @@ async fn main() {
             } else {
                 println!("{}", scan_results.to_string());
             }
-            // --- End of Check command logic ---\
+            // --- End of Check command logic ---\\
         }
         Commands::Checkref { no_warn, filepath } => {
             // --- Existing Checkref command logic --- \
@@ -273,12 +277,10 @@ async fn main() {
             let script = &irulescan::preprocess_script(&script_in);
             println!("{:?}", rstcl::parse_script(script));
         }
-        Commands::Mcpserver { listen } => {
-            // Call the refactored function from the mcpserver module
-            mcpserver::run_mcpserver(listen).await;
+        Commands::Mcpserver { listen, include_good_practices } => {
+            mcpserver::run_mcpserver(listen, include_good_practices).await;
         }
         Commands::Apiserver { listen } => {
-            // Call the function from the apiserver module
             apiserver::run_apiserver(listen).await;
         }
     }
