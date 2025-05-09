@@ -107,18 +107,18 @@ enum Commands {
 
     /// Run MCP server (HTTP stream transport)
     Mcpserver {
-        /// listening addr, eg. 127.0.0.1:8000 or 0.0.0.0:80
-        #[arg(long)]
+        /// listening addr, eg. 127.0.0.1:8888 or 0.0.0.0:80
+        #[arg(long, default_value_t = SocketAddr::from(([127, 0, 0, 1], 8000)))]
         listen: SocketAddr,
 
         /// Include iRule security good practices in scan results to provide additional context to the LLM.
-        #[arg(long)]
+        #[arg(long, default_value_t = true)]
         include_good_practices: bool,
     },
     /// Run HTTP API server (OpenAPI v3)
     Apiserver {
-        /// listening addr, eg. 127.0.0.1:8000 or 0.0.0.0:80
-        #[arg(long)]
+        /// listening addr, eg. 127.0.0.1:8888 or 0.0.0.0:80
+        #[arg(long, default_value_t = SocketAddr::from(([127, 0, 0, 1], 8000)))]
         listen: SocketAddr,
     },
 }

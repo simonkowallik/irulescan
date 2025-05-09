@@ -134,6 +134,9 @@ pub async fn run_mcpserver(listen_addr: SocketAddr, include_good_practices: bool
         .init();
 
     tracing::info!("irulescan MCP server listening on {}", listen_addr);
+    if include_good_practices {
+        tracing::info!("Including good practices in the scan results on findings.");
+    }
 
     match StreamableHttpServer::serve(listen_addr).await {
         Ok(server) => {

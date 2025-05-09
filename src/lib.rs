@@ -122,12 +122,52 @@ fn is_safe_val(token: &rstcl::TclToken) -> bool {
     return true;
 }
 
+// Helper function to check for non-standard ASCII characters in a token and its sub-tokens
+fn check_token_characters<'a>(
+    ctx: &'a str,
+    token: &rstcl::TclToken<'a>,
+    command_line_number: usize,
+) -> Vec<CheckResult<'a>> {
+    let mut warnings = Vec::new();
+
+    // Check the current token's value
+    for ch in token.val.chars() {
+        let is_allowed_char = (ch >= '\u{0020}' && ch <= '\u{007E}') || // ASCII printable and space
+                               ch == '\t' || // Tab
+                               ch == '\n' || // Newline
+                               ch == '\r'; // Carriage Return
+
+        if !is_allowed_char {
+            warnings.push(CheckResult::Warn(
+                ctx,
+                "Token contains character(s) outside the standard ASCII printable/whitespace set",
+                token.val, // The problematic token's value
+                command_line_number, // Use the command's line number for this warning
+            ));
+            break; // Add only one warning per token value to avoid flooding
+        }
+    }
+
+    // Recursively check sub-tokens. The line number context remains that of the original command.
+    for sub_token in token.tokens.iter() {
+        warnings.extend(check_token_characters(ctx, sub_token, command_line_number));
+    }
+
+    warnings
+}
+
 pub fn check_command<'a, 'b>(
     ctx: &'a str,
     tokens: &'b Vec<rstcl::TclToken<'a>>,
     line_number: usize, // Line number of the command itself
 ) -> Vec<CheckResult<'a>> {
     let mut results = vec![];
+
+    // Add the character set check for all tokens in the command
+    for token in tokens.iter() {
+        results.extend(check_token_characters(ctx, token, line_number));
+    }
+
     // First check all subcommands which will be substituted
     // The line number for these subcommands is the line of the main command.
     // A more precise line number for the subcommand itself (if it spans multiple lines)
@@ -632,13 +672,14 @@ pub fn preprocess_script(string: &str) -> String {
     let processed_script = re_replacer(
         &processed_script,
         &Regex::new(r"(?<!(\\|\{))\n[\s]*\{").unwrap(),
-        &r" {",
+        &" {\n", // add newline to retain line numbers
     );
     // format according to tcl syntax, iRules are too lax
     let processed_script = re_replacer(
         &processed_script,
-        &Regex::new(r"(?P<token>\}|else|then|while|for)[\n\s]*\{").unwrap(),
-        &r"$token {",
+        //&Regex::new(r"(?P<token>\}|else|then|while|for)[\n\s]*\{").unwrap(),
+        &Regex::new(r"(?P<token>\}|else|then|while|for)\n[\s]*\{").unwrap(),
+        &"$token {\n", // add newline to retain line numbers
     );
     return processed_script;
 }
@@ -678,7 +719,7 @@ pub fn scan_and_format_results(
                         }
                         warning_objects.push(json!({
                             "message": msg,
-                            "code": code,
+                            "issue_location": code,
                             "context": context_str,
                             "line": line_num
                         }));
@@ -691,7 +732,7 @@ pub fn scan_and_format_results(
                         }
                         dangerous_objects.push(json!({
                             "message": msg,
-                            "code": code,
+                            "issue_location": code,
                             "context": context_str,
                             "line": line_num
                         }));
