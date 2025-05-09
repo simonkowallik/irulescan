@@ -5,12 +5,15 @@ use rmcp::{
     Error as McpError, RoleServer, ServerHandler, model::*, schemars,
     service::RequestContext, tool,
 };
-//use rmcp::transport::sse_server::SseServer;
 use rmcp::transport::streamable_http_server::axum::StreamableHttpServer;
 use serde_json::json;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::scan_and_format_results;
+
+const GOOD_PRACTICES_URI: &str = "irulescan://good-practices";
+const GOOD_PRACTICES_NAME: &str = "iRule Security Good Practices";
+const GOOD_PRACTICES_CONTENT: &str = include_str!("../files/good-practices.md");
 
 #[derive(Debug, serde::Deserialize, schemars::JsonSchema)]
 pub struct ScanRequest {
@@ -18,10 +21,10 @@ pub struct ScanRequest {
 }
 
 #[derive(Clone)]
-pub struct Scanner;
+pub struct Irulescan;
 
 #[tool(tool_box)]
-impl Scanner {
+impl Irulescan {
     pub fn new() -> Self {
         Self {}
     }
@@ -34,7 +37,7 @@ impl Scanner {
         let result = catch_unwind(AssertUnwindSafe(|| {
             let script = irulescan::preprocess_script(&irule);
             let preprocessed_scripts = vec![("mcpserver-request".to_string(), script)];
-            // Don't apply no_warn or exclude_empty_findings as per requirements
+            // Don't apply no_warn or exclude_empty_findings
             scan_and_format_results(&preprocessed_scripts, false, false)
         }));
 
@@ -65,19 +68,20 @@ impl Scanner {
 }
 
 #[tool(tool_box)]
-impl ServerHandler for Scanner {
+impl ServerHandler for Irulescan {
     fn get_info(&self) -> ServerInfo {
         ServerInfo {
             protocol_version: ProtocolVersion::LATEST,
             capabilities: ServerCapabilities::builder()
+                .enable_resources()
                 .enable_tools()
                 .build(),
             server_info: Implementation::from_build_env(),
             instructions: Some(r#"
 This server provides an iRule scanning service powered by irulescan.
-Use the 'scan' tool to check iRules for security issues."#
-            .to_string()
-            ),
+Use the 'scan' tool to check iRules for security issues.
+Use the 'irulescan://good-practices' resource to get a list of iRule security best practices.
+"#.to_string()),
         }
     }
 
@@ -87,7 +91,13 @@ Use the 'scan' tool to check iRules for security issues."#
         _: RequestContext<RoleServer>,
     ) -> Result<ListResourcesResult, McpError> {
         Ok(ListResourcesResult {
-            resources: vec![],
+            resources: vec![
+                RawResource::new(
+                    GOOD_PRACTICES_URI.to_string(),
+                    GOOD_PRACTICES_NAME.to_string(),
+                )
+                .no_annotation()
+            ],
             next_cursor: None,
         })
     }
@@ -97,26 +107,14 @@ Use the 'scan' tool to check iRules for security issues."#
         ReadResourceRequestParam { uri }: ReadResourceRequestParam,
         _: RequestContext<RoleServer>,
     ) -> Result<ReadResourceResult, McpError> {
-        Err(McpError::resource_not_found("resource_not_found", Some(json!({"uri": uri}))))
-    }
-
-    async fn list_prompts(
-        &self,
-        _request: Option<PaginatedRequestParam>,
-        _: RequestContext<RoleServer>,
-    ) -> Result<ListPromptsResult, McpError> {
-        Ok(ListPromptsResult {
-            next_cursor: None,
-            prompts: vec![],
-        })
-    }
-
-    async fn get_prompt(
-        &self,
-        GetPromptRequestParam { name, .. }: GetPromptRequestParam,
-        _: RequestContext<RoleServer>,
-    ) -> Result<GetPromptResult, McpError> {
-        Err(McpError::invalid_params("prompt not found", Some(json!({"name": name}))))
+        match uri.as_str() {
+            GOOD_PRACTICES_URI => {
+                Ok(ReadResourceResult {
+                    contents: vec![ResourceContents::text(GOOD_PRACTICES_CONTENT.to_string(), uri)],
+                })
+            }
+            _ => Err(McpError::resource_not_found("resource_not_found",Some(json!({"uri": uri})))),
+        }
     }
 
     async fn list_resource_templates(
@@ -140,22 +138,18 @@ pub async fn run_mcpserver(listen_addr: SocketAddr) {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    tracing::info!("Starting irulescan MCP server on {}", listen_addr);
+    tracing::info!("irulescan MCP server listening on {}", listen_addr);
 
     match StreamableHttpServer::serve(listen_addr).await {
         Ok(server) => {
-            let server_with_service = server.with_service(Scanner::new);
-            
-            tracing::info!("irulescan MCP server started successfully");
-            tracing::info!("Press Ctrl+C to shut down");
-            
+            let server_with_service = server.with_service(Irulescan::new);
             if let Ok(_) = tokio::signal::ctrl_c().await {
                 tracing::info!("Shutting down...");
                 server_with_service.cancel();
             }
         },
         Err(e) => {
-            tracing::error!("Failed to start MCP server: {}", e);
+            tracing::error!("Failed to start irulescan MCP server: {}", e);
             std::process::exit(1);
         }
     }

@@ -276,7 +276,7 @@ pub(crate) async fn run_apiserver(listen_addr: SocketAddr) {
         )
         .layer(DefaultBodyLimit::max(10 * 1024 * 1024)); // 10MB limit
 
-    tracing::info!("irulescan API listening on {}", listen_addr);
+    tracing::info!("irulescan OpenAPI listening on {}", listen_addr);
     tracing::info!("Swagger UI available at /");
     tracing::info!("OpenAPI 3.1 spec available at /openapi.json");
 
@@ -289,7 +289,7 @@ pub(crate) async fn run_apiserver(listen_addr: SocketAddr) {
     };
 
     if let Err(e) = axum::serve(listener, app).await {
-        tracing::error!("API server error: {}", e);
+        tracing::error!("Failed to start irulescan OpenAPI server: {}", e);
         std::process::exit(1);
     }
 }

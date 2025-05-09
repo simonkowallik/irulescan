@@ -3,7 +3,7 @@ FROM cgr.dev/chainguard/wolfi-base AS build-image
 RUN echo "* install packages" \
 &&  apk update \
 &&  apk add \
-          build-base \
+        build-base \
 ;
 
 RUN echo "* install devcontainer and vscode requirements" \
