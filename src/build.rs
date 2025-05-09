@@ -12,6 +12,7 @@ fn main() {
         // Suppress warnings
         .raw_line("#![allow(unnecessary_transmutes)]")
         .raw_line("#![allow(unsafe_op_in_unsafe_fn)]") // E0133
+        .raw_line("#![allow(dead_code)]")
         // Wrap unsafe operations in unsafe blocks
         .wrap_unsafe_ops(true)
         // Finish the builder and generate the bindings.

@@ -112,7 +112,7 @@ enum Commands {
         listen: SocketAddr,
 
         /// Include iRule security good practices in scan results to provide additional context to the LLM.
-        #[arg(long, default_value_t = true)]
+        #[arg(long, default_value_t = false)]
         include_good_practices: bool,
     },
     /// Run HTTP API server (OpenAPI v3)

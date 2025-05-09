@@ -15,7 +15,6 @@ use serde_json::json;
 
 pub mod rstcl;
 #[allow(
-    dead_code,
     non_upper_case_globals,
     non_camel_case_types,
     non_snake_case
@@ -285,11 +284,11 @@ pub fn check_command<'a, 'b>(
         | "lreverse" | "memory" | "namespace" | "open" | "package" | "pid" | "pkg_mkIndex"
         | "pkg::create" | "pwd" | "rename" | "seek" | "socket" | "source" | "tcl_findLibrary"
         | "tell" | "time" | "trace" | "unknown" | "update" => {
-            results.push(Warn(ctx, "Unsupported command", tokens[0].val, line_number));
+            results.push(Warn(ctx, "command unsupported", tokens[0].val, line_number));
             iter::repeat(Code::Normal).take(tokens.len() - 1).collect()
         }
         "uplevel" | "history" => {
-            results.push(Danger(ctx, "Unsafe command", tokens[0].val, line_number));
+            results.push(Danger(ctx, "command unsafe", tokens[0].val, line_number));
             iter::repeat(Code::Normal).take(tokens.len() - 1).collect()
         }
         // deprecated iRule commands
@@ -299,7 +298,7 @@ pub fn check_command<'a, 'b>(
         | "link_qos" | "local_addr" | "local_port" | "matchclass" | "redirect" | "remote_addr"
         | "remote_port" | "server_addr" | "server_port" | "urlcatblindquery" | "urlcatquery"
         | "use" | "vlan_id" => {
-            results.push(Warn(ctx, "Deprecated command", tokens[0].val, line_number));
+            results.push(Warn(ctx, "command deprecated", tokens[0].val, line_number));
             iter::repeat(Code::Normal).take(tokens.len() - 1).collect()
         }
         "after" => match tokens[1].val {
@@ -351,7 +350,7 @@ pub fn check_command<'a, 'b>(
             if !options_terminated {
                 results.push(Danger(
                     ctx,
-                    "Missing options terminator `--` permits argument injection",
+                    "missing options terminator `--` permits argument injection",
                     tokens[i].val, line_number // Line of the switch command
                 ));
             }
@@ -359,7 +358,7 @@ pub fn check_command<'a, 'b>(
             // If tokens[i] is the string argument, its line number is implicitly that of the overall command.
             // If the body (tokens[i+1]) is problematic, it's still part of this command line.
             if (tokens.len() - i) != 2 { // This check might be too simplistic for line numbers if args are on new lines
-                results.push(Danger(ctx, "Dangerous unquoted switch body", tokens[i].val, line_number));
+                results.push(Danger(ctx, "dangerous switch body, use braces `{ .. }`", tokens[i].val, line_number));
             }
             param_types.extend_from_slice(&vec![Code::Normal, Code::SwitchBody]);
             param_types
@@ -388,7 +387,7 @@ pub fn check_command<'a, 'b>(
             if !options_terminated {
                 results.push(Danger(
                     ctx,
-                    "Missing options terminator `--` permits argument injection",
+                    "missing options terminator `--` permits argument injection",
                     tokens[i].val, line_number // Line of the class command
                 ));
             }
@@ -407,7 +406,7 @@ pub fn check_command<'a, 'b>(
             if pos > 0 {
                 results.push(Danger(
                     ctx,
-                    "Missing options terminator `--` permits argument injection",
+                    "missing options terminator `--` permits argument injection",
                     tokens[pos].val, line_number // Line of the unset command
                 ));
             }
@@ -439,7 +438,7 @@ pub fn check_command<'a, 'b>(
             if !options_terminated {
                 results.push(Danger(
                     ctx,
-                    "Missing options terminator `--` permits argument injection",
+                    "missing options terminator `--` permits argument injection",
                     tokens[i].val, line_number // Line of the regexp/regsub command
                 ));
             }
@@ -486,7 +485,7 @@ pub fn check_command<'a, 'b>(
             if !options_terminated {
                 results.push(Danger(
                     ctx,
-                    "Missing options terminator `--` permits argument injection",
+                    "missing options terminator `--` permits argument injection",
                     tokens[i].val, line_number // Line of the table command
                 ));
             }
@@ -498,7 +497,7 @@ pub fn check_command<'a, 'b>(
     if param_types.len() != tokens.len() - 1 {
         results.push(Danger(
             ctx,
-            "Badly formed command, cannot scan code",
+            "badly formed command, cannot scan code",
             tokens[0].val, line_number // Line of the command
         ));
         return results;
@@ -526,19 +525,19 @@ fn check_switch_body<'a, 'b>(ctx: &'a str, token: &'b rstcl::TclToken<'a>, base_
     let body_str = token.val;
     if !(body_str.starts_with("{") && body_str.ends_with("}")) {
         // This finding is about the switch body token itself, so use base_line_number
-        return vec![Danger(ctx, r#"Dangerous quoted `"` switch body"#, body_str, base_line_number)];
+        return vec![Danger(ctx, r#"dangerous unsafe switch body, use braces `{ .. }`"#, body_str, base_line_number)];
     }
     // Body isn't inherently dangerous, let's check body elements
     let script_str = &body_str[1..body_str.len() - 1];
 
     let mut all_results: Vec<CheckResult<'a>> = vec![];
     // `rstcl::parse_script` will give line numbers relative to `script_str` (which starts at line 1).
-    // We need to adjust these by `base_line_number` and account for the `{` character.
-    // The content of script_str effectively starts on the same line as the opening `{` of the token.
-    // If token.val is "{...}", its line is base_line_number. The content inside starts there too.
+    // we need to adjust these by `base_line_number` and account for the `{` character.
+    // The content of script_str effectively starts on the same line as the opening `{` of the token
+    // If token.val is "{...}", its line is base_line_number
     for parse_item in rstcl::parse_script(script_str) {
-        let item_line_number_in_block = parse_item.line_number; // This is 1-based relative to script_str
-        // The actual line number is base_line_number + (item_line_number_in_block - 1)
+        let item_line_number_in_block = parse_item.line_number; // 1-based relative to script_str
+        // The line number is base_line_number + (item_line_number_in_block - 1)
         // because script_str starts on base_line_number.
         let actual_line_number = base_line_number + item_line_number_in_block -1;
 
@@ -565,10 +564,10 @@ fn check_switch_body<'a, 'b>(ctx: &'a str, token: &'b rstcl::TclToken<'a>, base_
 fn check_block<'a, 'b>(ctx: &'a str, token: &'b rstcl::TclToken<'a>, base_line_number: usize) -> Vec<CheckResult<'a>> {
     let block_str = token.val;
     if !(block_str.starts_with("{") && block_str.ends_with("}")) {
-        // This finding is about the block token itself, so use base_line_number
-        return vec![match is_safe_val(token) { // is_safe_val doesn\'t use line_number
-            true => Warn(ctx, "Unquoted block", block_str, base_line_number),
-            false => Danger(ctx, "Dangerous unquoted block", block_str, base_line_number),
+        // finding is about the code block token itself, so use base_line_number
+        return vec![match is_safe_val(token) {
+            true => Warn(ctx, "unsafe code block, use braces `{ .. }`", block_str, base_line_number),
+            false => Danger(ctx, "dangerous unsafe code block, use braces `{ .. }`", block_str, base_line_number),
         }];
     }
     // Block isn\'t inherently dangerous, let\'s check functions inside the block
@@ -586,8 +585,8 @@ fn check_expr<'a, 'b>(ctx: &'a str, token: &'b rstcl::TclToken<'a>, base_line_nu
     if !(expr_str.starts_with("{") && expr_str.ends_with("}")) {
         // This finding is about the expr token itself, so use base_line_number
         results.push(match is_safe_val(token) { // is_safe_val doesn\'t use line_number
-            true => Warn(ctx, "Unquoted expression", expr_str, base_line_number),
-            false => Danger(ctx, "Dangerous unquoted expression", expr_str, base_line_number),
+            true => Warn(ctx, "unsafe expression, use braces `{ .. }`", expr_str, base_line_number),
+            false => Danger(ctx, "dangerous unsafe expression, use braces `{ .. }`", expr_str, base_line_number),
         });
         return results;
     };

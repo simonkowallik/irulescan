@@ -10,18 +10,22 @@ use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use tokio::net::TcpListener;
-use tower_http::{
-    LatencyUnit,
-    trace::{TraceLayer, DefaultMakeSpan, DefaultOnRequest, DefaultOnResponse, DefaultOnFailure},
-};
+use tower_http::trace::{TraceLayer, DefaultMakeSpan};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use tracing::Level;
 
 use utoipa::{OpenApi, ToSchema, IntoParams};
 use utoipa_swagger_ui::SwaggerUi;
 use serde_json::json;
 
 use irulescan::scan_and_format_results;
+
+#[derive(Serialize, Deserialize, ToSchema, Clone)]
+pub(crate) struct FindingDetail {
+    message: String,
+    issue_location: String,
+    context: String,
+    line: usize,
+}
 
 #[derive(Deserialize, ToSchema, IntoParams)]
 pub(crate) struct ScanParams {
@@ -41,15 +45,15 @@ pub(crate) struct ScanFilesParams {
 
 #[derive(Serialize, ToSchema)]
 pub(crate) struct ScanBodyResponseEntry {
-    warning: Vec<String>,
-    dangerous: Vec<String>,
+    warning: Vec<FindingDetail>,
+    dangerous: Vec<FindingDetail>,
 }
 
 #[derive(Serialize, ToSchema)]
 pub(crate) struct ScanFilesResponseEntry {
     filepath: String,
-    warning: Vec<String>, // Use Vec<String> instead of Value for better schema
-    dangerous: Vec<String>, // Use Vec<String> instead of Value for better schema
+    warning: Vec<FindingDetail>,
+    dangerous: Vec<FindingDetail>,
 }
 
 #[derive(OpenApi)]
@@ -68,7 +72,7 @@ pub(crate) struct ScanFilesResponseEntry {
         scan_files_handler,
     ),
     components(
-        schemas(ScanParams, ScanFilesParams, ScanBodyResponseEntry, ScanFilesResponseEntry)
+        schemas(ScanParams, ScanFilesParams, ScanBodyResponseEntry, ScanFilesResponseEntry, FindingDetail)
     ),
     tags(
         (name = "irulescan", description = "irulescan API - security analyzer for iRules")
@@ -90,11 +94,15 @@ struct ApiDoc;
         example = r#"when HTTP_REQUEST {
     set one 1
     expr 1 + $one
+    switch [HTTP::header value "X-Header"] {
+        "*value1*" { log local0. "`*value1*`, raw header content: [HTTP::header value "X-Header"]" }
+        default { log local0. "Default value" }
+    }
 }"#,
     ),
     responses(
         (status = 200, description = "Returns the irulescan result.", body = ScanBodyResponseEntry),
-        (status = 500, description = "Internal server error during scan", body = String)
+        (status = 500, description = "Internal server error during scan.", body = String)
     ),
 )]
 async fn scan_handler(
@@ -112,20 +120,20 @@ async fn scan_handler(
     }));
 
     match result {
-        Ok(scan_results_json) => {
+        Ok(scan_results) => {
             // Extract results for the single "request_body" entry
-            let result_obj = scan_results_json
+            let result_obj = scan_results
                 .as_array()
                 .and_then(|arr| arr.get(0))
                 .cloned()
                 .unwrap_or_else(|| json!({"warning": [], "dangerous": []})); // Default if empty
 
             // Safely extract warning and dangerous fields
-            let warning: Vec<String> = serde_json::from_value(
+            let warning: Vec<FindingDetail> = serde_json::from_value(
                 result_obj.get("warning").cloned().unwrap_or_else(|| json!([]))
             ).unwrap_or_default();
 
-            let dangerous: Vec<String> = serde_json::from_value(
+            let dangerous: Vec<FindingDetail> = serde_json::from_value(
                 result_obj.get("dangerous").cloned().unwrap_or_else(|| json!([]))
             ).unwrap_or_default();
 
@@ -160,7 +168,7 @@ async fn scan_handler(
     ),
     responses(
         (status = 200, description = "Returns the irulescan result for all submitted files.", body = [ScanFilesResponseEntry]),
-        (status = 500, description = "Internal server error during scan of one or more files", body = String)
+        (status = 500, description = "Internal server error during scan of one or more files.", body = String)
     )
 )]
 async fn scan_files_handler(
@@ -206,8 +214,8 @@ async fn scan_files_handler(
         match result {
             Ok(scan_results_json) => {
                 if let Some(file_results_obj) = scan_results_json.as_array().and_then(|arr| arr.get(0)).cloned() {
-                    let warning: Vec<String> = serde_json::from_value(file_results_obj.get("warning").cloned().unwrap_or_else(|| json!([]))).unwrap_or_default();
-                    let dangerous: Vec<String> = serde_json::from_value(file_results_obj.get("dangerous").cloned().unwrap_or_else(|| json!([]))).unwrap_or_default();
+                    let warning: Vec<FindingDetail> = serde_json::from_value(file_results_obj.get("warning").cloned().unwrap_or_else(|| json!([]))).unwrap_or_default();
+                    let dangerous: Vec<FindingDetail> = serde_json::from_value(file_results_obj.get("dangerous").cloned().unwrap_or_else(|| json!([]))).unwrap_or_default();
 
                     // Add result even if findings are empty, unless exclude_empty_findings is true
                      if !exclude_empty_findings || !warning.is_empty() || !dangerous.is_empty() {
@@ -256,7 +264,7 @@ pub(crate) async fn run_apiserver(listen_addr: SocketAddr) {
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(
             std::env::var("IRULESCAN_LOG")
-                .unwrap_or_else(|_| "info,tower_http::trace=info".into()), // Correct filter for TraceLayer info logs
+                .unwrap_or_else(|_| "info".into()),
         ))
         .with(tracing_subscriber::fmt::layer())
         .init();
@@ -270,9 +278,6 @@ pub(crate) async fn run_apiserver(listen_addr: SocketAddr) {
         .route("/scanfiles/", post(scan_files_handler)) // trailing slash variant
         .layer(TraceLayer::new_for_http()
             .make_span_with(DefaultMakeSpan::new().include_headers(true))
-            .on_request(DefaultOnRequest::new().level(Level::INFO))
-            .on_response(DefaultOnResponse::new().level(Level::INFO).latency_unit(LatencyUnit::Micros))
-            .on_failure(DefaultOnFailure::new().level(Level::ERROR))
         )
         .layer(DefaultBodyLimit::max(10 * 1024 * 1024)); // 10MB limit
 
