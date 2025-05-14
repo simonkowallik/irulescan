@@ -22,13 +22,13 @@ pub struct ScanRequest {
 
 #[derive(Clone)]
 pub struct Irulescan {
-    include_good_practices: bool,
+    include_additional_context: bool,
 }
 
 #[tool(tool_box)]
 impl Irulescan {
-    pub fn new(include_good_practices: bool) -> Self {
-        Self { include_good_practices }
+    pub fn new(include_additional_context: bool) -> Self {
+        Self { include_additional_context }
     }
 
     #[tool(description = "Scan and analyse F5 iRule code for security issues")]
@@ -48,7 +48,7 @@ impl Irulescan {
                 // Extract results for the single entry, add good practices if requested
                 if let Some(result_obj) = scan_results.as_array().and_then(|arr| arr.get(0)) {
                     let mut result_map = result_obj.as_object().cloned().unwrap_or_else(serde_json::Map::new);
-                    if self.include_good_practices {
+                    if self.include_additional_context {
                         result_map.insert("good_practices".to_string(), serde_json::Value::String(GOOD_PRACTICES_CONTENT.to_string()));
                     }
                     let content = Content::json(serde_json::Value::Object(result_map))?;
@@ -124,7 +124,7 @@ Use the 'irulescan://good-practices' resource to get a list of iRule security be
     }
 }
 
-pub async fn run_mcpserver(listen_addr: SocketAddr, include_good_practices: bool) {
+pub async fn run_mcpserver(listen_addr: SocketAddr, include_additional_context: bool) {
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(
             std::env::var("IRULESCAN_LOG")
@@ -134,13 +134,13 @@ pub async fn run_mcpserver(listen_addr: SocketAddr, include_good_practices: bool
         .init();
 
     tracing::info!("irulescan MCP server listening on {}", listen_addr);
-    if include_good_practices {
+    if include_additional_context {
         tracing::info!("Including good practices in the scan results on findings.");
     }
 
     match StreamableHttpServer::serve(listen_addr).await {
         Ok(server) => {
-            let server_with_service = server.with_service(move || Irulescan::new(include_good_practices));
+            let server_with_service = server.with_service(move || Irulescan::new(include_additional_context));
             if let Ok(_) = tokio::signal::ctrl_c().await {
                 server_with_service.cancel();
             }

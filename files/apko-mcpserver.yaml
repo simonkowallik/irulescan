@@ -1,0 +1,8 @@
+include: apko-base.yaml
+
+environment:
+  LC_ALL: "C.UTF-8"
+  LANG: "C.UTF-8"
+  IRULESCAN_LISTEN: 0.0.0.0:8000
+
+cmd: mcpserver --include-additional-context

@@ -16,7 +16,27 @@ use irulescan::scan_and_format_results;
 mod apiserver;
 mod mcpserver;
 
-static IRULE_FILE_EXTENSIONS: [&str; 3] = [".irule", ".irul", ".tcl"];
+static IRULE_FILE_EXTENSIONS: once_cell::sync::Lazy<Vec<String>> = once_cell::sync::Lazy::new(|| {
+    match std::env::var("IRULESCAN_FILE_EXTENSIONS") {
+        Ok(env_val) => {
+            let extensions: Vec<String> = env_val
+                .split(',')
+                .map(|s| s.trim().to_string().to_lowercase())
+                .filter(|s| !s.is_empty()) // avoid empty strings if input is like ".foo,,.bar"
+                .collect();
+            if extensions.is_empty() {
+                // defaults if IRULESCAN_FILE_EXTENSIONS is set but results in an empty list (e.g., "" or ", ,")
+                vec![".irule".to_string(), ".irul".to_string(), ".tcl".to_string()]
+            } else {
+                extensions
+            }
+        }
+        Err(_) => {
+            // default values
+            vec![".irule".to_string(), ".irul".to_string(), ".tcl".to_string()]
+        }
+    }
+});
 
 fn read_file(path: &Path) -> String {
     let path_display = path.display();
@@ -107,17 +127,17 @@ enum Commands {
 
     /// Run MCP server (HTTP stream transport)
     Mcpserver {
-        /// listening addr, eg. 127.0.0.1:8888 or 0.0.0.0:80
+        /// explicitly set listening addr:port (eg. 0.0.0.0:8888)
         #[arg(long, default_value_t = SocketAddr::from(([127, 0, 0, 1], 8000)))]
         listen: SocketAddr,
 
         /// Include iRule security good practices in scan results to provide additional context to the LLM.
         #[arg(long, default_value_t = false)]
-        include_good_practices: bool,
+        include_additional_context: bool,
     },
     /// Run HTTP API server (OpenAPI v3)
     Apiserver {
-        /// listening addr, eg. 127.0.0.1:8888 or 0.0.0.0:80
+        /// explicitly set listening addr:port (eg. 0.0.0.0:8888)
         #[arg(long, default_value_t = SocketAddr::from(([127, 0, 0, 1], 8000)))]
         listen: SocketAddr,
     },
@@ -154,7 +174,7 @@ async fn main() {
                     let _path = entry.path();
                     if IRULE_FILE_EXTENSIONS
                         .iter()
-                        .any(|&x| _path.to_str().unwrap().to_lowercase().ends_with(x))
+                        .any(|x| _path.to_str().unwrap().to_lowercase().ends_with(x))
                         && _path.is_file()
                     {
                         script_ins.push((
@@ -277,11 +297,70 @@ async fn main() {
             let script = &irulescan::preprocess_script(&script_in);
             println!("{:?}", rstcl::parse_script(script));
         }
-        Commands::Mcpserver { listen, include_good_practices } => {
-            mcpserver::run_mcpserver(listen, include_good_practices).await;
+
+        Commands::Mcpserver { listen, include_additional_context } => {
+            let clap_default_addr = SocketAddr::from(([127, 0, 0, 1], 8000));
+            let final_listen_addr: SocketAddr;
+
+            if listen != clap_default_addr {
+                final_listen_addr = listen;
+            } else {
+                match std::env::var("IRULESCAN_LISTEN") {
+                    Ok(env_listen_str) => {
+                        match env_listen_str.parse::<SocketAddr>() {
+                            Ok(parsed_addr) => {
+                                final_listen_addr = parsed_addr;
+                            }
+                            Err(_) => {
+                                eprintln!("Warning: IRULESCAN_LISTEN environment variable ('{}') is not a valid SocketAddr. Using default address {}.", env_listen_str, clap_default_addr);
+                                // Fallback to clap default if env var is malformed
+                                final_listen_addr = clap_default_addr;
+                            }
+                        }
+                    }
+                    Err(std::env::VarError::NotPresent) => {
+                        // 3. Environment variable not set, use clap default
+                        // (which is already in listen if it matched clap_default_addr)
+                        final_listen_addr = listen;
+                    }
+                    Err(std::env::VarError::NotUnicode(_os_str)) => {
+                        eprintln!("Warning: IRULESCAN_LISTEN environment variable contains non-Unicode data. Using default address {}.", clap_default_addr);
+                        // Fallback to clap default if env var is not unicode
+                        final_listen_addr = clap_default_addr;
+                    }
+                }
+            }
+            mcpserver::run_mcpserver(final_listen_addr, include_additional_context).await;
         }
         Commands::Apiserver { listen } => {
-            apiserver::run_apiserver(listen).await;
+            let clap_default_addr = SocketAddr::from(([127, 0, 0, 1], 8000));
+            let final_listen_addr: SocketAddr;
+
+            if listen != clap_default_addr {
+                final_listen_addr = listen;
+            } else {
+                match std::env::var("IRULESCAN_LISTEN") {
+                    Ok(env_listen_str) => {
+                        match env_listen_str.parse::<SocketAddr>() {
+                            Ok(parsed_addr) => {
+                                final_listen_addr = parsed_addr;
+                            }
+                            Err(_) => {
+                                eprintln!("Warning: IRULESCAN_LISTEN environment variable ('{}') is not a valid SocketAddr. Using default address {}.", env_listen_str, clap_default_addr);
+                                final_listen_addr = clap_default_addr;
+                            }
+                        }
+                    }
+                    Err(std::env::VarError::NotPresent) => {
+                        final_listen_addr = listen;
+                    }
+                    Err(std::env::VarError::NotUnicode(_os_str)) => {
+                        eprintln!("Warning: IRULESCAN_LISTEN environment variable contains non-Unicode data. Using default address {}.", clap_default_addr);
+                        final_listen_addr = clap_default_addr;
+                    }
+                }
+            }
+            apiserver::run_apiserver(final_listen_addr).await;
         }
     }
 }

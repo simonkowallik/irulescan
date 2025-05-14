@@ -305,3 +305,15 @@ For safer authoring the VS Code iRules Extension is highly recommended:
 - [Avoiding Common iRules Security Pitfalls on F5 DevCentral](https://community.f5.com/t5/technical-articles/avoiding-common-irules-security-pitfalls/ta-p/306623)
 
 - [iRules Style Guide on F5 DevCentral](https://community.f5.com/t5/technical-articles/irules-style-guide/ta-p/305921)
+
+# TODO
+
+env vars:
+
+- `IRULESCAN_LISTEN`
+- `IRULESCAN_LOG`
+- `IRULESCAN_FILE_EXTENSIONS` `=".tcl,.irule,.txt"`, extensions are case in-sensitive
+
+mcpserver
+
+apiserver

@@ -293,8 +293,22 @@ pub(crate) async fn run_apiserver(listen_addr: SocketAddr) {
         }
     };
 
-    if let Err(e) = axum::serve(listener, app).await {
-        tracing::error!("Failed to start irulescan OpenAPI server: {}", e);
-        std::process::exit(1);
+    let server = axum::serve(listener, app);
+
+    match tokio::select! {
+        result = server => {
+            if let Err(e) = result {
+                tracing::error!("Failed to start irulescan API server: {}", e);
+                Err(e)
+            } else {
+                Ok(())
+            }
+        }
+        _ = tokio::signal::ctrl_c() => {
+            Ok(())
+        }
+    } {
+        Err(_) => std::process::exit(1),
+        Ok(_) => {}
     }
 }

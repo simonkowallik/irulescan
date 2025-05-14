@@ -1,6 +1,7 @@
 vars:
   package: irulescan
   version: 3.0.0
+  rust-toolchain: nightly-2025-04-26
 package:
   name: ${{vars.package}}
   version: ${{vars.version}}
@@ -9,8 +10,14 @@ package:
   copyright:
     - license: MIT
   target-architecture:
-    - x86_64
     - aarch64
+    - x86_64
+  dependencies:
+    runtime:
+      - glibc
+      - libgcc
+      - ld-linux
+      - libtcl-irulescan
 
 environment:
   contents:
@@ -31,8 +38,8 @@ environment:
 
 pipeline:
   - runs: |
-      rustup toolchain install nightly-2025-04-26 --profile minimal
-      rustup default nightly-2025-04-26
+      rustup toolchain install ${{vars.rust-toolchain}} --profile minimal
+      rustup default ${{vars.rust-toolchain}}
 
   - runs: |
       export PATH="$PATH:$(rustup show home)/toolchains/$(rustup show active-toolchain | cut -d ' ' -f 1)/bin:/home/build/.cargo/bin"

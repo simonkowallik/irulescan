@@ -1,0 +1,35 @@
+archs:
+  - aarch64
+  - x86_64
+
+contents:
+  keyring:
+    - https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
+    - ./melange.rsa.pub
+  repositories:
+    - https://packages.wolfi.dev/os
+    - '@local packages'
+  packages:
+    - 'libtcl-irulescan@local'
+    - 'irulescan@local'
+    - ld-linux
+    - libgcc
+    - glibc
+
+environment:
+  LC_ALL: "C.UTF-8"
+  LANG: "C.UTF-8"
+
+accounts:
+  groups:
+    - groupname: irulescan
+      gid: 1000
+  users:
+    - username: irulescan
+      uid: 1000
+      gid: 1000
+
+entrypoint:
+  command: /usr/bin/irulescan
+
+# cmd: ..

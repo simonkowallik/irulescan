@@ -13,8 +13,12 @@ package:
   copyright:
     - license: MIT
   target-architecture:
-    - x86_64
     - aarch64
+    - x86_64
+  dependencies:
+    runtime:
+      - glibc
+      - ld-linux
 
 environment:
   contents:
@@ -48,16 +52,6 @@ pipeline:
     with:
       dir: ${{vars.subdir}}
       opts: libtcl8.4.so
-
-#  - runs: |
-#      mkdir -p "${{targets.contextdir}}"/usr/lib
-#      mkdir -p "${{targets.contextdir}}"/usr/share/licenses/tcl8.4
-#      mkdir -p "${{targets.contextdir}}"/usr/share/licenses/irulescan
-#
-#      cp "${{package.srcdir}}/${{vars.subdir}}"/libtcl8.4.so "${{targets.contextdir}}"/usr/lib/libtcl-irulescan.so
-#
-#      cp "${{package.srcdir}}"/license.terms "${{targets.contextdir}}"/usr/share/licenses/tcl8.4/license.terms
-#      cp "${{package.srcdir}}"/${{vars.patch}} "${{targets.contextdir}}"/usr/share/licenses/irulescan/${{vars.patch}}
 
   - runs: |
       install -Dm755 "${{package.srcdir}}/${{vars.subdir}}"/libtcl8.4.so "${{targets.contextdir}}"/usr/lib/libtcl-irulescan.so

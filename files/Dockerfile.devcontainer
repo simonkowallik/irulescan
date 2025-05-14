@@ -9,18 +9,22 @@ RUN echo "* install packages" \
 RUN echo "* install devcontainer and vscode requirements" \
     && apk update \
     && apk add --no-cache \
-        git \
-        docker \
-        openssh-client \
-        sudo \
+        apko \
         bash \
         ca-certificates \
+        curl \
+        clang \
+        docker \
+        git \
+        iproute2 \
+        melange \
+        openssh-client \
         posix-libc-utils \
         procps \
-        iproute2 \
-        tzdata \
-        zsh \
         starship \
+        sudo \
+        tzdata \
+        jq \
         ;
 
 ENV PATH="/:/home/vscode/.cargo/bin:$PATH"
