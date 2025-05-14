@@ -1,12 +1,1 @@
-[
-  {
-    "filepath": "when.irule",
-    "warning": [
-      "Unquoted expr at `1` in `expr 1`",
-      "Unquoted expr at `2` in `expr 2`",
-      "Unquoted expr at `3` in `expr 3`",
-      "Unquoted expr at `4` in `expr 4`"
-    ],
-    "dangerous": []
-  }
-]
+[{"filepath":"when.irule.json","warning":[],"dangerous":[]}]

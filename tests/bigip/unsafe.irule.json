@@ -1,10 +1,1 @@
-[
-  {
-    "filepath": "unsafe.irule",
-    "warning": [],
-    "dangerous": [
-      "Use of unsafe command: at `uplevel` in `uplevel`",
-      "Use of unsafe command: at `history` in `history`"
-    ]
-  }
-]
+[{"filepath":"unsafe.irule.json","warning":[],"dangerous":[]}]

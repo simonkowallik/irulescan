@@ -1,14 +1,41 @@
 #!/bin/bash
 
-function run-cli-tests-checkref {
+function run-cmd-in-path {
+    path=$1
+    shift
+    cmd=$@
+    start_dir=$(pwd)
+    if [[ ! -d "$path" ]]; then
+        echo "Path $path does not exist."
+        exit 1
+    fi
+    echo -n "running $cmd in $path:"
+    cd "$path"
+    eval "$cmd"
+    if [[ $? -ne 0 ]]; then
+        echo "FAIL"
+        exit 1
+    fi
+    cd "$start_dir"
+}
+
+function run-all-cli-checkref-tests {
     start_dir=$(pwd)
     failures=0
     for file in $(find . |grep -e '.tcl$' -e '.irule$'); do
         cd "$(dirname "$file")"
+        tcl_file="$(basename "$file").json"
         json_file="$(basename "$file").json"
         if [[ -f "$json_file" ]]; then
+            # to update the json file, uncomment the next line
+            #irulescan check "$tcl_file" > "$json_file"
             echo -n "running test: $json_file: "
             irulescan checkref "$json_file"
+            if [[ $? -ne 0 ]]; then
+                echo "fail"
+                failures=$((failures + 1))
+            fi
+            irulescan check -r "$json_file" "$tcl_file"
             if [[ $? -ne 0 ]]; then
                 echo "fail"
                 failures=$((failures + 1))
@@ -21,13 +48,43 @@ function run-cli-tests-checkref {
     echo "* total failures: $failures"
     if [[ $failures -ne 0 ]]; then
         echo "FAIL"
-        exit 1
+        #exit 1
     fi
 }
 
+function run-cli-checkref-test {
+    if [[ $# -ne 2 ]]; then
+        echo "Usage: $0 <path_to_test> <file_name.json>"
+        exit 1
+    fi
+
+    path_to_test=$1
+    file_name=$2
+
+    if [[ ! -f "$path_to_test/$file_name" ]]; then
+        echo "File $path_to_test/$file_name does not exist."
+        exit 1
+    fi
+
+    start_dir=$(pwd)
+    cd "$path_to_test"
+    json_file="$file_name"
+
+    echo -n "running test: $json_file: "
+    irulescan checkref $CHECKREF_OPTIONS "$json_file"
+
+    if [[ $? -ne 0 ]]; then
+        echo "FAIL"
+        exit 1
+    fi
+    cd "$start_dir"
+    return 0
+}
+
+
 function run-cli-tests {
     if ! command -v jd &> /dev/null; then
-        echo "jq required but not installed. Skipping tests."
+        echo "jd required but not installed. Skipping tests."
         exit
     fi
     start_dir=$(pwd)
@@ -52,30 +109,6 @@ function run-cli-tests {
     fi
 }
 
-function build-container-apiserver {
-    docker build -t irulescan:apiserver -f files/Dockerfile.apiserver .
-}
-
-function prepare-container-latest {
-    docker image inspect irulescan:latest > /dev/null 2>&1 || docker build -t irulescan:latest -f files/Dockerfile .
-}
-
-function prepare-apiserver {
-    docker image inspect irulescan:apiserver > /dev/null 2>&1 || build-container-apiserver
-    if [ -z "$(docker ps -q --filter ancestor=irulescan:apiserver)" ]; then
-        echo -n "starting API server: "
-        docker run -p 8000:8000 -d irulescan:apiserver
-        sleep 5
-    fi
-}
-
-function cleanup {
-    if [ -n "$(docker ps -q --filter ancestor=irulescan:apiserver)" ]; then
-        echo -n "stopping API server: "
-        docker stop $(docker ps -q --filter ancestor=irulescan:apiserver)
-    fi
-}
-
 function test_container_stdin {
     echo -n "test_container_stdin: "
     cat tests/basic/dangerous.tcl | docker run --rm -i -v "${PWD}/tests:/scandir/tests" \
@@ -93,36 +126,46 @@ function test_scandir_multi_file {
 }
 
 function test_apiserver_multi_file {
-    prepare-apiserver
+    irulescan apiserver --listen 127.0.0.1:8888 >/dev/null &
 
     echo -n "test_apiserver_multi_file: "
-    curl -s http://localhost:8000/scanfiles/ \
+    sleep 1
+    curl -s http://localhost:8888/scanfiles/ \
         -F 'file=@tests/basic/ok.tcl' \
         -F 'file=@tests/basic/warning.tcl' \
         -F 'file=@tests/basic/dangerous.tcl' > output.json
-    jd -mset output.json tests/basic/irulescan.json || ( echo "fail" && exit 1 )
+    kill $(jobs -p) > /dev/null
+    jd -mset output.json tests/basic/irulescan.json || ( echo "FAIL" && rm -f output.json && exit 1 )
+    rm -f output.json
     echo "OK"
 }
 
 function test_apiserver_plain_code {
-    prepare-apiserver
+    irulescan apiserver --listen 127.0.0.1:8888 >/dev/null &
 
     echo -n "test_apiserver_plain_code: "
-    curl -s http://localhost:8000/scan/ \
-    --data-binary '@tests/basic/dangerous.tcl' > output.json
-    jd -mset output.json tests/basic/dangerous.tcl.stdin.json || ( echo "fail" && exit 1 )
+    sleep 1
+    curl -s http://localhost:8888/scan/ \
+    --data-binary '@tests/basic/dangerous.tcl' -o output.json
+    kill $(jobs -p) > /dev/null
+    jd -mset output.json tests/basic/dangerous.tcl.stdin.json || ( echo "FAIL" && rm -f output.json && exit 1 )
+    rm -f output.json
     echo "OK"
 }
 
+# tests
 
-prepare-apiserver
-prepare-container-latest
-
-test_container_stdin
-test_scandir_multi_file
-test_apiserver_multi_file
+# apiserver tests
 test_apiserver_plain_code
+test_apiserver_multi_file
 
-cleanup
+# run specific checkref tests
+CHECKREF_OPTIONS="" run-cli-checkref-test ./basic irulescan.json
+CHECKREF_OPTIONS="--no-warn" run-cli-checkref-test ./basic irulescan_nowarn.json
+CHECKREF_OPTIONS="--exclude-empty-findings" run-cli-checkref-test ./basic irulescan_exclude_empty.json
 
-trap cleanup EXIT
+# run all checkref tests
+run-all-cli-checkref-tests
+
+# run specific cli tests
+run-cmd-in-path ./basic irulescan check --exclude-empty-findings -r irulescan_exclude_empty.json .

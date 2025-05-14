@@ -81,7 +81,7 @@ enum Commands {
         #[arg(short, long, value_name = "REFERENCE_FILEPATH")]
         reference: Option<PathBuf>,
 
-        /// Scan iRules in this directory (recursively) or the specified iRule file, use - to scan STDIN.
+        /// Scan iRules in this directory (recursively) or the specified iRule file
         #[arg(required = true, value_name = "FILEPATH")]
         dirpath: PathBuf,
     },

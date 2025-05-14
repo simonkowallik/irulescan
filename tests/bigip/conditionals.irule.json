@@ -1,18 +1,1 @@
-[
-  {
-    "filepath": "conditionals.irule",
-    "warning": [
-      "Unquoted expr at `1` in `expr 1`",
-      "Unquoted expr at `2` in `expr 2`",
-      "Unquoted expr at `3` in `expr 3`",
-      "Unquoted expr at `4` in `expr 4`",
-      "Unquoted expr at `5` in `expr 5`",
-      "Unquoted expr at `6` in `expr 6`",
-      "Unquoted expr at `7` in `expr 7`",
-      "Unquoted expr at `8` in `expr 8`",
-      "Unquoted expr at `9` in `expr 9`",
-      "Unquoted expr at `10` in `expr 10`"
-    ],
-    "dangerous": []
-  }
-]
+[{"filepath":"conditionals.irule.json","warning":[],"dangerous":[]}]

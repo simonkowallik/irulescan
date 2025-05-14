@@ -71,7 +71,7 @@ docker run --rm -v "$PWD/tests/basic:/scandir" simonkowallik/irulescan
 If you plan to use irulescan frequently, consider adding a shell function to wrap the container execution and add it in your shell, eg. in your `.bashrc` or similar.
 
 ```shell
-irulescan(){ docker run --rm -i -v "$PWD:$PWD" -w "$PWD" simonkowallik/irulescan:latest "${@:--help}"; }
+irulescan(){ docker run --rm -iv "$PWD:$PWD" -w "$PWD" simonkowallik/irulescan:latest "${@:--help}"; }
 # invoke ephemeral (--rm) container interactively (-i)
 # bind mount (-v) PWD to the same path and use it as workdir (-w)
 # pass any parameters, if none/empty, pass "help" ("${@:--help}")
@@ -109,14 +109,14 @@ irulescan check --exclude-empty-findings ./tests/basic/ | jq
 > `--exclude-empty-findings` removes the entry for the file `"ok.tcl"` as it has no findings.
 > `cd tests/basic; irulescan check . | jq` would have provided the same results as the docker command from the previous example.
 
-When specifying a file, irulescan will try to scan the file regardless of the file extension.
+When specifying a file explicitly, irulescan will try to scan the file regardless of the file extension.
 
 ```console
-irulescan check --no-warn tests/basic/dangerous.txt
+irulescan check --no-warn tests/basic/dangerous.tcl
 ```
 
 ```json
-[{"filepath":"tests/basic/dangerous.txt","warning":[],"dangerous":["Dangerous unquoted expr at `$one` in `expr 1 + $one`"]}]
+[{"filepath":"tests/basic/dangerous.tcl","warning":[],"dangerous":[{"message":"Dangerous unquoted expression","issue_location":"$one","context":"expr 1 + $one","line":2}]}]
 ```
 
 ```console
@@ -130,10 +130,12 @@ home: https://github.com/simonkowallik/irulescan
 Usage: irulescan <COMMAND>
 
 Commands:
-  check     Scan all iRules in a directory (recursively) or the specified file
-  checkref  Scan all iRules in reference file (JSON) and compare to reference
-  parsestr  Parse given string or stdin
-  help      Print this message or the help of the given subcommand(s)
+  check      Scan all iRules in a directory (recursively) or the specified file or - for stdin
+  checkref   Scan all iRules in reference file (JSON) and compare to reference
+  parsestr   Parse given string or stdin
+  mcpserver  Run MCP server (HTTP stream transport)
+  apiserver  Run HTTP API server (OpenAPI v3)
+  help       Print this message or the help of the given subcommand(s)
 
 Options:
   -h, --help
@@ -227,18 +229,33 @@ docker run -t --rm -p 8000:8000 simonkowallik/irulescan:apiserver
 Scanning a single file / iRule code:
 
 ```shell
-curl -s http://localhost/scan/ \
+curl -s http://localhost:8000/scan/ \
   --data-binary '@tests/basic/dangerous.tcl' | jq
 ```
 
 ```json
 {
   "warning": [
-    "Unquoted expr at `1` in `expr 1 + $one`",
-    "Unquoted expr at `+` in `expr 1 + $one`"
+    {
+      "message": "Unquoted expression",
+      "issue_location": "1",
+      "context": "expr 1 + $one",
+      "line": 2
+    },
+    {
+      "message": "Unquoted expression",
+      "issue_location": "+",
+      "context": "expr 1 + $one",
+      "line": 2
+    }
   ],
   "dangerous": [
-    "Dangerous unquoted expr at `$one` in `expr 1 + $one`"
+    {
+      "message": "Dangerous unquoted expression",
+      "issue_location": "$one",
+      "context": "expr 1 + $one",
+      "line": 2
+    }
   ]
 }
 ```

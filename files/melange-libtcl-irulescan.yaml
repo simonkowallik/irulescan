@@ -49,32 +49,30 @@ pipeline:
       dir: ${{vars.subdir}}
       opts: libtcl8.4.so
 
+#  - runs: |
+#      mkdir -p "${{targets.contextdir}}"/usr/lib
+#      mkdir -p "${{targets.contextdir}}"/usr/share/licenses/tcl8.4
+#      mkdir -p "${{targets.contextdir}}"/usr/share/licenses/irulescan
+#
+#      cp "${{package.srcdir}}/${{vars.subdir}}"/libtcl8.4.so "${{targets.contextdir}}"/usr/lib/libtcl-irulescan.so
+#
+#      cp "${{package.srcdir}}"/license.terms "${{targets.contextdir}}"/usr/share/licenses/tcl8.4/license.terms
+#      cp "${{package.srcdir}}"/${{vars.patch}} "${{targets.contextdir}}"/usr/share/licenses/irulescan/${{vars.patch}}
+
+  - runs: |
+      install -Dm755 "${{package.srcdir}}/${{vars.subdir}}"/libtcl8.4.so "${{targets.contextdir}}"/usr/lib/libtcl-irulescan.so
+      install -Dm644 "${{package.srcdir}}"/license.terms "${{targets.contextdir}}"/usr/share/licenses/tcl8.4/license.terms
+      install -Dm644 "${{package.srcdir}}"/${{vars.patch}} "${{targets.contextdir}}"/usr/share/licenses/irulescan/${{vars.patch}}
+
   - uses: strip
-  - runs: |
-      ls -l
-      ls -l ../
-  - runs: |
-      mkdir -p "${{targets.contextdir}}"/usr/lib
-      mkdir -p "${{targets.contextdir}}"/usr/share/licenses/tcl8.4
-      mkdir -p "${{targets.contextdir}}"/usr/share/licenses/irulescan
-
-      cp "${{package.srcdir}}/${{vars.subdir}}"/libtcl8.4.so "${{targets.contextdir}}"/usr/lib/libtcl-irulescan.so
-
-      cp "${{package.srcdir}}"/license.terms "${{targets.contextdir}}"/usr/share/licenses/tcl8.4/license.terms
-      cp "${{package.srcdir}}"/${{vars.patch}} "${{targets.contextdir}}"/usr/share/licenses/irulescan/${{vars.patch}}
 
 subpackages:
   - name: "libtcl-irulescan-dev"
     description: "Development files for libtcl-irulescan"
     pipeline:
       - runs: |
-          mkdir -p "${{targets.contextdir}}"/usr/include
-          mkdir -p "${{targets.contextdir}}"/usr/share/licenses/tcl8.4
-          mkdir -p "${{targets.contextdir}}"/usr/share/licenses/irulescan
-
-          cp "${{package.srcdir}}"/generic/tcl.h "${{targets.contextdir}}"/usr/include/tcl.h
-          cp "${{package.srcdir}}"/generic/tclDecls.h "${{targets.contextdir}}"/usr/include/tclDecls.h
-          cp "${{package.srcdir}}"/generic/tclPlatDecls.h "${{targets.contextdir}}"/usr/include/tclPlatDecls.h
-
-          cp "${{package.srcdir}}"/license.terms "${{targets.contextdir}}"/usr/share/licenses/tcl8.4/license.terms
-          cp "${{package.srcdir}}"/${{vars.patch}} "${{targets.contextdir}}"/usr/share/licenses/irulescan/${{vars.patch}}
+          install -Dm644 "${{package.srcdir}}"/generic/tcl.h "${{targets.contextdir}}"/usr/include/tcl.h
+          install -Dm644 "${{package.srcdir}}"/generic/tclDecls.h "${{targets.contextdir}}"/usr/include/tclDecls.h
+          install -Dm644 "${{package.srcdir}}"/generic/tclPlatDecls.h "${{targets.contextdir}}"/usr/include/tclPlatDecls.h
+          install -Dm644 "${{package.srcdir}}"/license.terms "${{targets.contextdir}}"/usr/share/licenses/tcl8.4/license.terms
+          install -Dm644 "${{package.srcdir}}"/${{vars.patch}} "${{targets.contextdir}}"/usr/share/licenses/irulescan/${{vars.patch}}
