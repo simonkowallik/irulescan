@@ -1,4 +1,4 @@
-include: apko-base.yaml
+include: files/apko-base.yaml
 
 environment:
   LC_ALL: "C.UTF-8"

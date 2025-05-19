@@ -2,10 +2,9 @@ use axum::{
     routing::post,
     http::StatusCode,
     response::{IntoResponse, Json},
-    extract::{DefaultBodyLimit, Query},
+    extract::{DefaultBodyLimit, Query, Multipart},
     Router,
 };
-use axum_extra::extract::Multipart;
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use std::panic::{catch_unwind, AssertUnwindSafe};
@@ -14,10 +13,14 @@ use tower_http::trace::{TraceLayer, DefaultMakeSpan};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use utoipa::{OpenApi, ToSchema, IntoParams};
-use utoipa_swagger_ui::SwaggerUi;
+use utoipa_rapidoc::RapiDoc;
 use serde_json::json;
 
 use irulescan::scan_and_format_results;
+
+mod rapidoc_res;
+use rapidoc_res::RAPIDOC_HTML;
+use rapidoc_res::RAPIDOC_JS;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
 pub(crate) struct FindingDetail {
@@ -56,27 +59,32 @@ pub(crate) struct ScanFilesResponseEntry {
     dangerous: Vec<FindingDetail>,
 }
 
+#[allow(dead_code)]
+#[derive(Deserialize, ToSchema)]
+pub(crate) struct IruleFile {
+    #[schema(format = Binary, content_media_type = "application/octet-stream")]
+    file: String,
+}
+
 #[derive(OpenApi)]
 #[openapi(
     info(
         description = "irulescan - security analyzer for iRules",
         title = "irulescan API",
         version = "3.0.0",
-        ),
-    external_docs(
-        description = "irulescan documentation",
-        url = "https://simonkowallik.github.io/irulescan/"
+        license(name = "MIT"),
     ),
     paths(
         scan_handler,
         scan_files_handler,
     ),
     components(
-        schemas(ScanParams, ScanFilesParams, ScanBodyResponseEntry, ScanFilesResponseEntry, FindingDetail)
+        schemas(ScanParams, ScanFilesParams, ScanBodyResponseEntry, ScanFilesResponseEntry, FindingDetail, IruleFile)
     ),
     tags(
-        (name = "irulescan", description = "irulescan API - security analyzer for iRules")
-    )
+        (name = "irulescan", description = "irulescan API - security analyzer for iRules",
+        external_docs(description = "irulescan documentation", url = "https://simonkowallik.github.io/irulescan/")),
+    ),
 )]
 struct ApiDoc;
 
@@ -89,16 +97,8 @@ struct ApiDoc;
         ScanParams
     ),
     request_body(
-        content = String,
         description = "iRule code to scan",
-        example = r#"when HTTP_REQUEST {
-    set one 1
-    expr 1 + $one
-    switch [HTTP::header value "X-Header"] {
-        "*value1*" { log local0. "`*value1*`, raw header content: [HTTP::header value "X-Header"]" }
-        default { log local0. "Default value" }
-    }
-}"#,
+        content = String
     ),
     responses(
         (status = 200, description = "Returns the irulescan result.", body = ScanBodyResponseEntry),
@@ -163,8 +163,9 @@ async fn scan_handler(
         ScanFilesParams
     ),
     request_body(
+        description = "iRule files to scan",
+        content = IruleFile,
         content_type = "multipart/form-data",
-        description = "iRule files to scan"
     ),
     responses(
         (status = 200, description = "Returns the irulescan result for all submitted files.", body = [ScanFilesResponseEntry]),
@@ -268,10 +269,14 @@ pub(crate) async fn run_apiserver(listen_addr: SocketAddr) {
         ))
         .with(tracing_subscriber::fmt::layer())
         .init();
-    // API routes and Swagger UI
+    // API routes and Rapidoc
     let app = Router::new()
-        .merge(SwaggerUi::new("/").url("/openapi.json", ApiDoc::openapi()))
-        // API routes
+        .merge(RapiDoc::with_openapi("/openapi.json", ApiDoc::openapi()).path("/").custom_html(RAPIDOC_HTML))
+        // serve javascript for Rapidoc (/rapidoc.js", RAPIDOC_JS)
+        .route("/rapidoc.js", axum::routing::get(|| async {
+            ([(axum::http::header::CONTENT_TYPE, "text/javascript; charset=utf-8")], RAPIDOC_JS)
+        }))
+        // API endpoints
         .route("/scan", post(scan_handler))
         .route("/scan/", post(scan_handler)) // trailing slash variant
         .route("/scanfiles", post(scan_files_handler))
@@ -282,7 +287,7 @@ pub(crate) async fn run_apiserver(listen_addr: SocketAddr) {
         .layer(DefaultBodyLimit::max(10 * 1024 * 1024)); // 10MB limit
 
     tracing::info!("irulescan OpenAPI listening on {}", listen_addr);
-    tracing::info!("Swagger UI available at /");
+    tracing::info!("RapiDoc UI available at /");
     tracing::info!("OpenAPI 3.1 spec available at /openapi.json");
 
     let listener = match TcpListener::bind(listen_addr).await {

@@ -1,7 +1,8 @@
 vars:
   package: irulescan
   version: 3.0.0
-  rust-toolchain: nightly-2025-04-26
+  #rust-toolchain: nightly-2025-04-26
+  rust-toolchain: nightly-2025-05-09
 package:
   name: ${{vars.package}}
   version: ${{vars.version}}

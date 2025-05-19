@@ -33,22 +33,25 @@ irulescan-pkg-build:
 	@echo "Building irulescan package..."
 	$(MELANGE_BUILD) $(IRULESCAN_MELANGE_CONFIG)
 
-irulescan: irulescan-apiserver irulescan-mcpserver irulescan-default
+irulescan: sign-apkindex irulescan-apiserver irulescan-mcpserver irulescan-default
 
 irulescan-apiserver:
 	@echo "Building irulescan API server container..."
-	$(APKO_BUILD) files/apko-apiserver.yaml irulescan:apiserver irulescan-apiserver-container.tar
-	$(DOCKER_LOAD) < irulescan-apiserver-container.tar
+	mkdir -p build
+	$(APKO_BUILD) --sbom-path build/ files/apko-apiserver.yaml irulescan:apiserver build/irulescan-apiserver-container.tar
+	$(DOCKER_LOAD) < build/irulescan-apiserver-container.tar
 
 irulescan-mcpserver:
 	@echo "Building irulescan MCP server container..."
-	$(APKO_BUILD) files/apko-mcpserver.yaml irulescan:mcpserver irulescan-mcpserver-container.tar
-	$(DOCKER_LOAD) < irulescan-mcpserver-container.tar
+	mkdir -p build
+	$(APKO_BUILD) --sbom-path build/ files/apko-mcpserver.yaml irulescan:mcpserver build/irulescan-mcpserver-container.tar
+	$(DOCKER_LOAD) < build/irulescan-mcpserver-container.tar
 
 irulescan-default:
 	@echo "Building irulescan default container..."
-	$(APKO_BUILD) files/apko-default.yaml irulescan:latest irulescan-latest-container.tar
-	$(DOCKER_LOAD) < irulescan-latest-container.tar
+	mkdir -p build
+	$(APKO_BUILD) --sbom-path build/ files/apko-default.yaml irulescan:latest build/irulescan-latest-container.tar
+	$(DOCKER_LOAD) < build/irulescan-latest-container.tar
 
 clean:
 	@echo "Cleaning up project..."
@@ -56,8 +59,5 @@ clean:
 	$(CARGO) clean
 	rm -f $(GENERATED_TCL_RS)
 	rm -rf build
-	rm -f irulescan-apiserver-container.tar
-	rm -f irulescan-mcpserver-container.tar
-	rm -f irulescan-latest-container.tar
 	rm -f sbom-*.spdx.json
 	@echo "Cleanup complete."

@@ -21,20 +21,17 @@ serde_json = "1.0.140"
 json_diff_ng = "0.6.0"
 libc = "0.2.172"
 # Web server dependencies
-axum = "0.8.4"
+axum = { version = "0.8.4", features = ["multipart"] }
 tokio = { version = "1.44.2", features = ["full"] }
 serde = { version = "1.0.219", features = ["derive"] }
 tower-http = { version = "0.6.2", features = ["fs", "trace"] }
-axum-extra = { version = "0.10.1", features = ["typed-header", "multipart"] }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 tempfile = "3.19.1"
-# OpenAPI / Swagger UI dependencies
 utoipa = { version = "5.3.1", features = ["axum_extras"] }
-utoipa-swagger-ui = { version = "9.0.1", features = ["axum", "vendored"] }
-utoipa-swagger-ui-vendored = "0.1.2"
+utoipa-rapidoc = { version = "6.0.0", features = ["axum"] }
 # MCP - bleeding edge (dev) to support streamable http transport
-rmcp = { git = "https://github.com/modelcontextprotocol/rust-sdk", rev = "5d92061ecefe0c7a6e514421c2f84b2d40938e39", features = ["transport-streamable-http-server"] }
+rmcp = { git = "https://github.com/modelcontextprotocol/rust-sdk", rev = "35282ee34cedf41c0bdf4f1e47a99710e64ba401", features = ["transport-streamable-http-server", "transport-worker"] }
 anyhow = "1.0.98"
 async-trait = "0.1.88"
 tokio-util = "0.7.15"
