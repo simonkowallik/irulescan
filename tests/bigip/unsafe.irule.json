@@ -1,1 +1,20 @@
-[{"filepath":"unsafe.irule.json","warning":[],"dangerous":[]}]
+[
+  {
+    "filepath": "unsafe.irule",
+    "warning": [],
+    "dangerous": [
+      {
+        "message": "command is unsafe",
+        "issue_location": "uplevel",
+        "context": "uplevel",
+        "line": 1
+      },
+      {
+        "message": "command is unsafe",
+        "issue_location": "history",
+        "context": "history",
+        "line": 2
+      }
+    ]
+  }
+]

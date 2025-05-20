@@ -25,6 +25,8 @@ RUN echo "* install devcontainer and vscode requirements" \
         sudo \
         tzdata \
         jq \
+        yq \
+        patch \
         ;
 
 ENV PATH="/:/home/vscode/.cargo/bin:$PATH"
@@ -35,7 +37,7 @@ RUN addgroup -g 1000 vscode \
     && chmod 0440 /etc/sudoers.d/vscode
 
 # init starship
-RUN starship init zsh >> /home/vscode/.zshrc
+RUN starship init bash >> /home/vscode/.bashrc
 
 # devcontainer workspace
 RUN mkdir -p /workspaces/irulescan/build \
@@ -56,21 +58,9 @@ RUN echo "* download and verify tcl" \
 &&  sha256sum -c "$TCL_ARCHIVE".sha256 \
 ;
 
-#COPY files/irulescan_tcl8.4.20.patch ./
-#RUN echo "* configure, patch, compile and install tcl" \
-#&&  tar xzf "$TCL_ARCHIVE" \
-#&&  patch -p0 < irulescan_tcl8.4.20.patch \
-#&&  cd tcl8.4.20/unix \
-#&&  ./configure --enable-64bit --prefix=/usr \
-#&&  make \
-#&&  sudo make install-strip \
-#&&  sudo mv /usr/lib/libtcl8.4.so /usr/lib/libtcl-irulescan.so \
-#&&  sudo strip /usr/lib/libtcl-irulescan.so \
-#;
-
 RUN echo "* install rust nightly" \
 &&  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain none -y \
-&&  rustup toolchain install nightly-2025-04-26 --profile minimal \
+&&  rustup toolchain install nightly-2025-05-09 --profile minimal \
 ;
 
 WORKDIR /workspaces/irulescan

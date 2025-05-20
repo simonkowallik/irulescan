@@ -1,1 +1,56 @@
-[{"filepath":"class.irule.json","warning":[],"dangerous":[]}]
+[
+  {
+    "filepath": "class.irule",
+    "warning": [],
+    "dangerous": [
+      {
+        "message": "missing options terminator `--` permits argument injection",
+        "issue_location": "fail_100",
+        "context": "class search -index -name -value -element -all fail_100 equals datagroup_fail",
+        "line": 7
+      },
+      {
+        "message": "missing options terminator `--` permits argument injection",
+        "issue_location": "fail_100",
+        "context": "class  match -index -name -value -element -all fail_100 equals datagroup_fail",
+        "line": 8
+      },
+      {
+        "message": "missing options terminator `--` permits argument injection",
+        "issue_location": "fail_200",
+        "context": "class search fail_200 equals datagroup_fail",
+        "line": 10
+      },
+      {
+        "message": "missing options terminator `--` permits argument injection",
+        "issue_location": "fail_200",
+        "context": "class  match fail_200 equals datagroup_fail",
+        "line": 11
+      },
+      {
+        "message": "missing options terminator `--` permits argument injection",
+        "issue_location": "fail_300",
+        "context": "class nextelement -index -name -value fail_300 <search_id>",
+        "line": 19
+      },
+      {
+        "message": "missing options terminator `--` permits argument injection",
+        "issue_location": "fail_300",
+        "context": "class element -name -value fail_300 <class>",
+        "line": 20
+      },
+      {
+        "message": "missing options terminator `--` permits argument injection",
+        "issue_location": "fail_400",
+        "context": "class nextelement fail_400 <search_id>",
+        "line": 22
+      },
+      {
+        "message": "missing options terminator `--` permits argument injection",
+        "issue_location": "fail_400",
+        "context": "class element fail_400 <class>",
+        "line": 23
+      }
+    ]
+  }
+]

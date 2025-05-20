@@ -24,12 +24,14 @@ function run-all-cli-checkref-tests {
     failures=0
     for file in $(find . |grep -e '.tcl$' -e '.irule$'); do
         cd "$(dirname "$file")"
-        tcl_file="$(basename "$file").json"
+        tcl_file="$(basename "$file")"
         json_file="$(basename "$file").json"
         if [[ -f "$json_file" ]]; then
-            # to update the json file, uncomment the next line
-            #irulescan check "$tcl_file" > "$json_file"
-            echo -n "running test: $json_file: "
+            # to update the json file, uncomment the next lines
+            #echo irulescan check "$tcl_file" | jq . > "$json_file"
+            #irulescan check "$tcl_file" | jq . > "$json_file"
+
+            echo -n "running test: ($tcl_file/$json_file): "
             irulescan checkref "$json_file"
             if [[ $? -ne 0 ]]; then
                 echo "fail"
@@ -169,3 +171,10 @@ run-all-cli-checkref-tests
 
 # run specific cli tests
 run-cmd-in-path ./basic irulescan check --exclude-empty-findings -r irulescan_exclude_empty.json .
+
+# backtrace on invalid operator token in expression
+run-cmd-in-path ./issues irulescan check 7.tcl 2> &1 | grep -qe 'ERROR: Invalid Operator token "SomeInvalidOperator"'
+if [[ $? -ne 0 ]]; then
+    echo "FAIL"
+    exit 1
+fi

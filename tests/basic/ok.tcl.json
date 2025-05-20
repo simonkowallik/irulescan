@@ -1,1 +1,7 @@
-[{"filepath":"ok.tcl.json","warning":[],"dangerous":[]}]
+[
+  {
+    "filepath": "ok.tcl",
+    "warning": [],
+    "dangerous": []
+  }
+]

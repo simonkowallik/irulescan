@@ -1,1 +1,27 @@
-[{"filepath":"test1.irule.json","warning":[],"dangerous":[]}]
+[
+  {
+    "filepath": "test1.irule",
+    "warning": [
+      {
+        "message": "unsafe expression, use braces `{ .. }`",
+        "issue_location": "+",
+        "context": "expr $n + 30",
+        "line": 5
+      },
+      {
+        "message": "unsafe expression, use braces `{ .. }`",
+        "issue_location": "30",
+        "context": "expr $n + 30",
+        "line": 5
+      }
+    ],
+    "dangerous": [
+      {
+        "message": "dangerous unsafe expression, use braces `{ .. }`",
+        "issue_location": "$n",
+        "context": "expr $n + 30",
+        "line": 5
+      }
+    ]
+  }
+]

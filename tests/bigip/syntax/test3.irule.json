@@ -1,1 +1,14 @@
-[{"filepath":"test3.irule.json","warning":[],"dangerous":[]}]
+[
+  {
+    "filepath": "test3.irule",
+    "warning": [],
+    "dangerous": [
+      {
+        "message": "command is badly formed, cannot scan code",
+        "issue_location": "while",
+        "context": "while {$n < 30}      \\  {    log local0. [set n [expr $n + 30]]}",
+        "line": 4
+      }
+    ]
+  }
+]

@@ -1,1 +1,98 @@
-[{"filepath":"table.irule.json","warning":[],"dangerous":[]}]
+[
+  {
+    "filepath": "table.irule",
+    "warning": [],
+    "dangerous": [
+      {
+        "message": "missing options terminator `--` permits argument injection",
+        "issue_location": "FOO1",
+        "context": "table  set FOO1 bar1",
+        "line": 20
+      },
+      {
+        "message": "missing options terminator `--` permits argument injection",
+        "issue_location": "ABC",
+        "context": "table  set -subtable FOO3 ABC DEF",
+        "line": 21
+      },
+      {
+        "message": "missing options terminator `--` permits argument injection",
+        "issue_location": "ABC",
+        "context": "table  set -georedundancy ABC DEF",
+        "line": 22
+      },
+      {
+        "message": "missing options terminator `--` permits argument injection",
+        "issue_location": "ABC",
+        "context": "table  set -notouch -subtable FOO4 ABC DEF",
+        "line": 23
+      },
+      {
+        "message": "missing options terminator `--` permits argument injection",
+        "issue_location": "FOO2",
+        "context": "table  add FOO2 bar2",
+        "line": 24
+      },
+      {
+        "message": "missing options terminator `--` permits argument injection",
+        "issue_location": "FOO1",
+        "context": "table  replace FOO1 1",
+        "line": 25
+      },
+      {
+        "message": "missing options terminator `--` permits argument injection",
+        "issue_location": "FOO1",
+        "context": "table lookup FOO1",
+        "line": 26
+      },
+      {
+        "message": "missing options terminator `--` permits argument injection",
+        "issue_location": "FOO1",
+        "context": "table incr FOO1 1",
+        "line": 27
+      },
+      {
+        "message": "missing options terminator `--` permits argument injection",
+        "issue_location": "ABC",
+        "context": "table lookup -georedundancy ABC",
+        "line": 28
+      },
+      {
+        "message": "missing options terminator `--` permits argument injection",
+        "issue_location": "FOO2",
+        "context": "table  append FOO2 bar3",
+        "line": 29
+      },
+      {
+        "message": "missing options terminator `--` permits argument injection",
+        "issue_location": "FOO2",
+        "context": "table  delete FOO2",
+        "line": 30
+      },
+      {
+        "message": "missing options terminator `--` permits argument injection",
+        "issue_location": "FOO1",
+        "context": "table  timeout FOO1 60",
+        "line": 31
+      },
+      {
+        "message": "missing options terminator `--` permits argument injection",
+        "issue_location": "FOO1",
+        "context": "table  lifetime FOO1 60",
+        "line": 32
+      },
+      {
+        "message": "missing options terminator `--` permits argument injection",
+        "issue_location": "FOO1",
+        "context": "table timeout -remaining FOO1",
+        "line": 33
+      },
+      {
+        "message": "missing options terminator `--` permits argument injection",
+        "issue_location": "FOO1",
+        "context": "table lifetime -remaining FOO1",
+        "line": 34
+      }
+    ]
+  }
+]

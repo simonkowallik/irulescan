@@ -95,7 +95,7 @@
  		infoPtr->size = 2;
  		infoPtr->next = src+2;
  		parsePtr->term = infoPtr->next;
-@@ -1827,8 +1907,85 @@
+@@ -1827,8 +1907,99 @@
  		goto checkFuncName;
  	    }
  
@@ -160,6 +160,20 @@
 +		infoPtr->lexeme = STREQ;
 +		infoPtr->size = 13;
 +		infoPtr->next = src+13;
++		parsePtr->term = infoPtr->next;
++		return TCL_OK;
++		 } else if (
++			(src[1] == 'a') &&
++			(src[2] == 't') &&
++			(src[3] == 'c') &&
++			(src[4] == 'h') &&
++			(src[5] == 'e') &&
++			(src[6] == 's') &&
++		 	((infoPtr->lastChar - src) > 1)
++		 ) {
++		infoPtr->lexeme = STREQ;
++		infoPtr->size = 7;
++		infoPtr->next = src+7;
 +		parsePtr->term = infoPtr->next;
 +		return TCL_OK;
 +	    } else {

@@ -1,1 +1,26 @@
-[{"filepath":"warning.tcl.json","warning":[],"dangerous":[]}]
+[
+  {
+    "filepath": "warning.tcl",
+    "warning": [
+      {
+        "message": "unsafe expression, use braces `{ .. }`",
+        "issue_location": "1",
+        "context": "expr 1 + 1",
+        "line": 1
+      },
+      {
+        "message": "unsafe expression, use braces `{ .. }`",
+        "issue_location": "+",
+        "context": "expr 1 + 1",
+        "line": 1
+      },
+      {
+        "message": "unsafe expression, use braces `{ .. }`",
+        "issue_location": "1",
+        "context": "expr 1 + 1",
+        "line": 1
+      }
+    ],
+    "dangerous": []
+  }
+]

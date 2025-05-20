@@ -1,1 +1,56 @@
-[{"filepath":"when.irule.json","warning":[],"dangerous":[]}]
+[
+  {
+    "filepath": "when.irule",
+    "warning": [
+      {
+        "message": "unknown event",
+        "issue_location": "HTTP_REQUST",
+        "context": "when HTTP_REQUST {    # typo    expr 1}",
+        "line": 1
+      },
+      {
+        "message": "unsafe expression, use braces `{ .. }`",
+        "issue_location": "1",
+        "context": "expr 1",
+        "line": 3
+      },
+      {
+        "message": "unknown event",
+        "issue_location": "HTTP_REQUST",
+        "context": "when HTTP_REQUST priority 2 {    expr 2}",
+        "line": 5
+      },
+      {
+        "message": "unsafe expression, use braces `{ .. }`",
+        "issue_location": "2",
+        "context": "expr 2",
+        "line": 6
+      },
+      {
+        "message": "unknown event",
+        "issue_location": "HTTP_REQUST",
+        "context": "when HTTP_REQUST timing on {    expr 3}",
+        "line": 8
+      },
+      {
+        "message": "unsafe expression, use braces `{ .. }`",
+        "issue_location": "3",
+        "context": "expr 3",
+        "line": 9
+      },
+      {
+        "message": "unknown event",
+        "issue_location": "HTTP_REQUST",
+        "context": "when HTTP_REQUST timing on priority 4 {    expr 4}",
+        "line": 11
+      },
+      {
+        "message": "unsafe expression, use braces `{ .. }`",
+        "issue_location": "4",
+        "context": "expr 4",
+        "line": 12
+      }
+    ],
+    "dangerous": []
+  }
+]

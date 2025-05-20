@@ -1,1 +1,20 @@
-[{"filepath":"tmconf.irule.json","warning":[],"dangerous":[]}]
+[
+  {
+    "filepath": "tmconf.irule",
+    "warning": [
+      {
+        "message": "unsafe expression, use braces `{ .. }`",
+        "issue_location": "1",
+        "context": "expr 1 ",
+        "line": 3
+      },
+      {
+        "message": "unsafe expression, use braces `{ .. }`",
+        "issue_location": "2",
+        "context": "expr 2 ",
+        "line": 8
+      }
+    ],
+    "dangerous": []
+  }
+]

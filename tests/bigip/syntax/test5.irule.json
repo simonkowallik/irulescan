@@ -1,1 +1,7 @@
-[{"filepath":"test5.irule.json","warning":[],"dangerous":[]}]
+[
+  {
+    "filepath": "test5.irule",
+    "warning": [],
+    "dangerous": []
+  }
+]

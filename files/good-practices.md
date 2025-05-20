@@ -1,6 +1,6 @@
 # good practices to avoid security issues
 
-## practice 1: quote expressions using curly braces
+## practice 1: Quote expressions using curly braces
 
 One should always surround expressions with braces `{}`, including expressions supplied to expr, for, if, and while commands among others (see list below). Braced expressions can be compiled by the byte-code compiler, making code faster and safer as they avoid the problems associated with double substitution.
 
@@ -44,7 +44,7 @@ At least for the below commands expressions must be braced to avoid double subst
 - uplevel
 - while
 
-## practice 2: always end options
+## practice 2: Always end options
 
 Some commands accept options like `-start`, `-all` or `-glob`. To avoid options to be injected by passed input, always end options by using `--` after the last option or as the only option if none are used.
 
@@ -84,19 +84,23 @@ At least for the below commands options must be ended, even when no options are 
 The criticality of any findings depends on multiple factors, one of which is the control over the input. Categorizing inputs helps prioritize validation and sanitization efforts.
 
 ### 1. Literals & Internally Controlled Variables (Least Critical)
-- **Definition & Control:** Values hardcoded by the developer (e.g., `set limit 1000`) or variables strictly managed by internal application logic (e.g., counters, internal state flags) that are not derived from runtime external sources.
-- **Criticality & Security Actions:** Lowest risk for *direct external injection*. The main concern is developer error leading to flawed logic in their use. Focus on sound design and correct implementation rather than input validation against external threats.
+
+Values hardcoded by the developer (e.g., `set limit 1000`) or variables strictly managed by internal application logic (e.g. counters, internal state flags) that are not derived from runtime external sources.
+Lowest risk for *direct external injection*. The main concern is developer error leading to flawed logic in their use. Focus on sound design and correct implementation rather than input validation against external threats.
 
 ### 2. Variables with Fixed, Well-Defined Format and Input (Moderately Critical)
-- **Definition & Control:** Inputs derieved from protocols through commands with predictable format, *strictly typed* or with a limited set of values (e.g., an IPv4 address, a port number, an HTTP method like `GET` or `POST`). While the format is constrained, the actual value is externally controlled.
-- **Criticality & Security Actions:** Moderately critical. The constrained format and type reduces attack vectors, but the content can still be unexpected.
-    - **Action:** Be aware of the possible values and implement adequate format validation (e.g., regex, IP addresses/range/CIDR matching, numeric range checks). Validate against allowed values (allowlisting) where possible. Be prepared to safely handle inputs that are formally valid but contextually problematic.
+
+Inputs derieved from protocols through commands with predictable format, *strictly typed* or with a limited set of values (e.g., an IPv4 address, a port number, an HTTP method (`GET`, `POST`, `HEAD`, ..)). While the format is constrained, the actual value is externally controlled.
+Moderately critical. The constrained format and type reduces attack vectors, but the content can still be unexpected. Be aware of the possible values and possibly implement adequate checks (eg. IP addresses/range/CIDR matching, numeric range checks, checks against a given listen of good values). Validate against allowed values (allowlisting) where possible. Be prepared to safely handle inputs that are formally valid but contextually problematic.
 
 ### 3. Variables with Free Format and Content (Most Critical)
-- **Definition & Control:** Inputs where an external source has significant, often complete, control over the content, length, and structure (e.g., HTTP headers, URL paths and query parameters, POST body data, free-text or payload data).
-- **Criticality & Security Actions:** Highest criticality. These are primary vectors for attacks like code, command or option injection.
-    - **Action:** Treat these inputs as untrusted by default. Apply comprehensive multi-layered validation:
-        - Be aware of TCL substitution behaviour
-        - Check length, character sets, and expected patterns.
-        - Use strong contextual sanitization or output encoding before using the data in other commands, queries, or displaying/logging it.
-        - Prioritize allowlisting of desired characters/patterns over denylisting.
+
+Inputs where an external source has significant, often complete, control over the content, length, and structure (e.g., HTTP headers, URL paths and query parameters, POST body data, payload data, DNS labels, ..).
+
+Highest criticality! These are primary vectors for attacks like code, command or option injection.
+Treat these inputs as untrusted by default. Apply comprehensive multi-layered validation:
+
+- Be aware of TCL substitution behaviour
+- Check length, character sets, and expected patterns.
+- Use strong contextual sanitization or output encoding before using the data in other commands, queries, or displaying/logging it.
+- Prioritize allowlisting of desired characters/patterns/values over denylisting.
