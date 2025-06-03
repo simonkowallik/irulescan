@@ -22,7 +22,9 @@ function run-cmd-in-path {
 function run-all-cli-checkref-tests {
     start_dir=$(pwd)
     failures=0
+    IFS=$'\n'
     for file in $(find . |grep -e '.tcl$' -e '.irule$'); do
+        echo "cd "$(dirname "$file")" for $file"
         cd "$(dirname "$file")"
         tcl_file="$(basename "$file")"
         json_file="$(basename "$file").json"
@@ -31,7 +33,7 @@ function run-all-cli-checkref-tests {
             #echo irulescan check "$tcl_file" | jq . > "$json_file"
             #irulescan check "$tcl_file" | jq . > "$json_file"
 
-            echo -n "running test: ($tcl_file/$json_file): "
+            echo -n "running test: ($(pwd)/ $tcl_file/$json_file): "
             irulescan checkref "$json_file"
             if [[ $? -ne 0 ]]; then
                 echo "fail"
@@ -42,8 +44,8 @@ function run-all-cli-checkref-tests {
                 echo "fail"
                 failures=$((failures + 1))
             fi
-        else
-            echo "skipping test: $file: no json file found"
+        #else
+        #    echo "skipping test: $file: no json file found"
         fi
         cd "$start_dir"
     done
@@ -133,13 +135,14 @@ function test_apiserver_multi_file {
     echo -n "test_apiserver_multi_file: "
     sleep 1
     curl -s http://localhost:8888/scanfiles/ \
-        -F 'file=@tests/basic/ok.tcl' \
-        -F 'file=@tests/basic/warning.tcl' \
-        -F 'file=@tests/basic/dangerous.tcl' > output.json
-    kill $(jobs -p) > /dev/null
-    jd -mset output.json tests/basic/irulescan.json || ( echo "FAIL" && rm -f output.json && exit 1 )
+        -F 'file=@basic/ok.tcl' \
+        -F 'file=@basic/warning.tcl' \
+        -F 'file=@basic/dangerous.tcl' > output.json
+    jd -mset output.json basic/irulescan.json || ( echo "FAIL" && rm -f output.json && exit 1 )
     rm -f output.json
     echo "OK"
+    sleep 1
+    kill $(jobs -p) > /dev/null
 }
 
 function test_apiserver_plain_code {
@@ -148,11 +151,12 @@ function test_apiserver_plain_code {
     echo -n "test_apiserver_plain_code: "
     sleep 1
     curl -s http://localhost:8888/scan/ \
-    --data-binary '@tests/basic/dangerous.tcl' -o output.json
-    kill $(jobs -p) > /dev/null
-    jd -mset output.json tests/basic/dangerous.tcl.stdin.json || ( echo "FAIL" && rm -f output.json && exit 1 )
+    --data-binary '@basic/dangerous.tcl' -o output.json
+    jd -mset output.json basic/dangerous.tcl.stdin.json || ( echo "FAIL" && rm -f output.json && exit 1 )
     rm -f output.json
     echo "OK"
+    sleep 1
+    kill $(jobs -p) > /dev/null
 }
 
 # tests
