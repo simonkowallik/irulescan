@@ -53,10 +53,6 @@ pipeline:
       cargo auditable build --release
 
   - runs: |
-      echo "targets.contextdir: ${{targets.contextdir}}"
-      echo "package.srcdir: ${{package.srcdir}}"
-
-  - runs: |
       install -Dm755 "${{package.srcdir}}"/target/release/irulescan "${{targets.contextdir}}"/usr/bin/irulescan
       install -Dm644 "${{package.srcdir}}"/README.md "${{targets.contextdir}}"/usr/share/doc/irulescan/README.md
       install -Dm644 "${{package.srcdir}}"/LICENSE "${{targets.contextdir}}"/usr/share/licenses/irulescan/LICENSE

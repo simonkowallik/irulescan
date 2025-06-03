@@ -1,3 +1,46 @@
+--- tcl8.4.20.orig/generic/tclCmdMZ.c
++++ tcl8.4.20/generic/tclCmdMZ.c
+@@ -1321,7 +1321,7 @@
+ 		 */
+ 		string1 = (char*) Tcl_GetByteArrayFromObj(objv[0], &length1);
+ 		string2 = (char*) Tcl_GetByteArrayFromObj(objv[1], &length2);
+-		strCmpFn = memcmp;
++		strCmpFn = (int (*)())memcmp;
+ 	    } else if ((objv[0]->typePtr == &tclStringType)
+ 		    && (objv[1]->typePtr == &tclStringType)) {
+ 		/*
+@@ -1332,7 +1332,7 @@
+ 		 */
+ 		string1 = (char*) Tcl_GetUnicodeFromObj(objv[0], &length1);
+ 		string2 = (char*) Tcl_GetUnicodeFromObj(objv[1], &length2);
+-		strCmpFn = nocase ? Tcl_UniCharNcasecmp : Tcl_UniCharNcmp;
++		strCmpFn = (int (*)())(nocase ? Tcl_UniCharNcasecmp : Tcl_UniCharNcmp);
+ 	    } else {
+ 		/*
+ 		 * As a catch-all we will work with UTF-8.  We cannot use
+@@ -1344,11 +1344,11 @@
+ 		string1 = (char*) Tcl_GetStringFromObj(objv[0], &length1);
+ 		string2 = (char*) Tcl_GetStringFromObj(objv[1], &length2);
+ 		if ((reqlength < 0) && !nocase) {
+-		    strCmpFn = TclpUtfNcmp2;
++		    strCmpFn = (int (*)())TclpUtfNcmp2;
+ 		} else {
+ 		    length1 = Tcl_NumUtfChars(string1, length1);
+ 		    length2 = Tcl_NumUtfChars(string2, length2);
+-		    strCmpFn = nocase ? Tcl_UtfNcasecmp : Tcl_UtfNcmp;
++		    strCmpFn = (int (*)())(nocase ? Tcl_UtfNcasecmp : Tcl_UtfNcmp);
+ 		}
+ 	    }
+ 
+@@ -1366,7 +1366,7 @@
+ 		     */
+ 		    reqlength = length + 1;
+ 		}
+-		match = strCmpFn(string1, string2, (unsigned) length);
++		match = ((int (*)(const char *, const char *, size_t))strCmpFn)(string1, string2, (unsigned) length);
+ 		if ((match == 0) && (reqlength > length)) {
+ 		    match = length1 - length2;
+ 		}
 --- tcl8.4.20.orig/generic/tclParseExpr.c
 +++ tcl8.4.20/generic/tclParseExpr.c
 @@ -1812,13 +1812,93 @@
@@ -196,6 +239,17 @@
  		infoPtr->lexeme = STRNEQ;
  		infoPtr->size = 2;
  		infoPtr->next = src+2;
+--- tcl8.4.20.orig/generic/tclScan.c
++++ tcl8.4.20/generic/tclScan.c
+@@ -1030,7 +1030,7 @@
+ 			}
+ 		    } else {
+ #endif /* !TCL_WIDE_INT_IS_LONG */
+-			value = (long) (*fn)(buf, NULL, base);
++			value = (long) ((long (*)(const char *, char **, int))(*fn))(buf, NULL, base);
+ 			if ((flags & SCAN_UNSIGNED) && (value < 0)) {
+ 			    sprintf(buf, "%lu", value); /* INTL: ISO digit */
+ 			    objPtr = Tcl_NewStringObj(buf, -1);
 --- tcl8.4.20.orig/unix/configure
 +++ tcl8.4.20/unix/configure
 @@ -777,7 +777,7 @@
@@ -245,4 +299,23 @@
 -	fi
      fi
  
+ 
+--- tcl8.4.20.orig/unix/tclUnixPort.h
++++ tcl8.4.20/unix/tclUnixPort.h
+@@ -523,16 +523,6 @@
+ #endif
+ 
+ /*
+- * At present (12/91) not all stdlib.h implementations declare strtod.
+- * The declaration below is here to ensure that it's declared, so that
+- * the compiler won't take the default approach of assuming it returns
+- * an int.  There's no ANSI prototype for it because there would end
+- * up being too many conflicts with slightly-different prototypes.
+- */
+-
+-extern double strtod();
+-
+-/*
+  * There is no platform-specific panic routine for Unix in the Tcl internals.
+  */
  

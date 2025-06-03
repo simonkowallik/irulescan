@@ -8,18 +8,26 @@ LIBTCL_MELANGE_CONFIG := ./files/melange-libtcl-irulescan.yaml
 IRULESCAN_MELANGE_CONFIG := ./melange.yaml
 SIGNING_KEY := melange.rsa
 PACKAGES_DIR := packages
-X86_64_APKINDEX := $(PACKAGES_DIR)/x86_64/APKINDEX.tar.gz
-AARCH64_APKINDEX := $(PACKAGES_DIR)/aarch64/APKINDEX.tar.gz
 GENERATED_TCL_RS := src/tcl.rs
+ARTIFACTS_DIR := artifacts
 
-.PHONY: all libtcl-irulescan-pkg irulescan-pkg sign-apkindex lib sign clean packages_build apkindex irulescan
+NAMES := apiserver mcpserver latest
+# Ensure yq is installed and available in your environment for this to work
+
+ALL_IRULESCAN_TARGETS := $(foreach name,$(NAMES),irulescan-$(name))
+
+.PHONY: all libtcl-irulescan-pkg irulescan-pkg sign-apkindex lib sign clean apkindex irulescan $(ALL_IRULESCAN_TARGETS)
 
 all: libtcl-irulescan-pkg irulescan-pkg irulescan
 
-sign-apkindex: packages_build
+sign-apkindex:
 	@echo "Signing APK indexes..."
-	$(MELANGE_SIGN_INDEX) $(X86_64_APKINDEX) --signing-key $(SIGNING_KEY)
-	$(MELANGE_SIGN_INDEX) $(AARCH64_APKINDEX) --signing-key $(SIGNING_KEY)
+	@for arch_dir in $(PACKAGES_DIR)/*/; do \
+		if [ -f "$$arch_dir/APKINDEX.tar.gz" ]; then \
+			echo "Signing APK index for $$(basename $$arch_dir)..."; \
+			$(MELANGE_SIGN_INDEX) "$$arch_dir/APKINDEX.tar.gz" --signing-key $(SIGNING_KEY); \
+		fi; \
+	done
 
 libtcl-irulescan-pkg: libtcl-irulescan-pkg-build sign-apkindex
 
@@ -33,31 +41,23 @@ irulescan-pkg-build:
 	@echo "Building irulescan package..."
 	$(MELANGE_BUILD) $(IRULESCAN_MELANGE_CONFIG)
 
-irulescan: sign-apkindex irulescan-apiserver irulescan-mcpserver irulescan-default
+irulescan: sign-apkindex $(ALL_IRULESCAN_TARGETS)
 
-irulescan-apiserver:
-	@echo "Building irulescan API server container..."
-	mkdir -p build
-	$(APKO_BUILD) --sbom-path build/ files/apko-apiserver.yaml irulescan:apiserver build/irulescan-apiserver-container.tar
-	$(DOCKER_LOAD) < build/irulescan-apiserver-container.tar
+irulescan-$(1):
+	@echo "Building irulescan $(1) container..."
+	mkdir -p $(ARTIFACTS_DIR)/$(1)/
+	$(APKO_BUILD) \
+		--sbom-path $(ARTIFACTS_DIR)/$(1)/ \
+		files/apko-$(1).yaml \
+		irulescan:$(1) \
+		$(ARTIFACTS_DIR)/$(1)/irulescan-$(1).tar
+	$(DOCKER_LOAD) < $(ARTIFACTS_DIR)/$(1)/irulescan-$(1).tar
 
-irulescan-mcpserver:
-	@echo "Building irulescan MCP server container..."
-	mkdir -p build
-	$(APKO_BUILD) --sbom-path build/ files/apko-mcpserver.yaml irulescan:mcpserver build/irulescan-mcpserver-container.tar
-	$(DOCKER_LOAD) < build/irulescan-mcpserver-container.tar
-
-irulescan-default:
-	@echo "Building irulescan default container..."
-	mkdir -p build
-	$(APKO_BUILD) --sbom-path build/ files/apko-default.yaml irulescan:latest build/irulescan-latest-container.tar
-	$(DOCKER_LOAD) < build/irulescan-latest-container.tar
 
 clean:
 	@echo "Cleaning up project..."
-	rm -rf $(PACKAGES_DIR)
 	$(CARGO) clean
+	rm -rf $(PACKAGES_DIR)
 	rm -f $(GENERATED_TCL_RS)
-	rm -rf build
-	rm -f sbom-*.spdx.json
+	rm -rf $(ARTIFACTS_DIR)
 	@echo "Cleanup complete."

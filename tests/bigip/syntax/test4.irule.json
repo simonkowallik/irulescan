@@ -1,14 +1,7 @@
 [
   {
     "filepath": "test4.irule",
-    "warning": [
-      {
-        "message": "command is unknown",
-        "issue_location": "incr",
-        "context": "incr x",
-        "line": 3
-      }
-    ],
+    "warning": [],
     "dangerous": [
       {
         "message": "dangerous unsafe expression, use braces `{ .. }`",

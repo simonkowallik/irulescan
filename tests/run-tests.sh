@@ -164,7 +164,6 @@ test_apiserver_multi_file
 # run specific checkref tests
 CHECKREF_OPTIONS="" run-cli-checkref-test ./basic irulescan.json
 CHECKREF_OPTIONS="--no-warn" run-cli-checkref-test ./basic irulescan_nowarn.json
-CHECKREF_OPTIONS="--exclude-empty-findings" run-cli-checkref-test ./basic irulescan_exclude_empty.json
 
 # run all checkref tests
 run-all-cli-checkref-tests

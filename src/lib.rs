@@ -13,6 +13,32 @@ use std::fmt;
 use std::iter;
 use serde_json::json;
 
+mod messages {
+    pub const LITERAL_EXPECTED_DOLLAR_NO_QUOTES: &str = "literal expected, found `$`, use braces `{ .. }`";
+    pub const LITERAL_EXPECTED_DOLLAR_QUOTES: &str = r#"literal expected, found `$`, use braces `{ .. }` instead of quotes `" .. "`"#;
+    pub const LITERAL_EXPECTED_BRACKET_NO_QUOTES: &str = "literal expected, found `[`, use braces `{ .. }`";
+    pub const LITERAL_EXPECTED_BRACKET_QUOTES: &str = r#"literal expected, found `[`, use braces `{ .. }` instead of quotes `" .. "`"#;
+    pub const NON_STANDARD_ASCII_CHARS: &str = "token contains character(s) outside the standard ascii printable/whitespace set";
+    pub const NON_LITERAL_COMMAND: &str = "non-literal command, cannot scan";
+    pub const UNKNOWN_EVENT: &str = "event unknown";
+    pub const DANGEROUS_SWITCH_BODY: &str = "dangerous switch body, use braces `{ .. }`";
+    pub const MISSING_OPTIONS_TERMINATOR_SWITCH: &str = "missing options terminator `--` permits argument injection";
+    pub const MISSING_OPTIONS_TERMINATOR_CLASS: &str = "missing options terminator `--` permits argument injection";
+    pub const MISSING_OPTIONS_TERMINATOR_UNSET: &str = "missing options terminator `--` permits argument injection";
+    pub const MISSING_OPTIONS_TERMINATOR_REGEXP: &str = "missing options terminator `--` permits argument injection";
+    pub const MISSING_OPTIONS_TERMINATOR_TABLE: &str = "missing options terminator `--` permits argument injection";
+    pub const DEPRECATED_COMMAND: &str = "command is deprecated";
+    pub const UNSUPPORTED_COMMAND: &str = "command is unsupported";
+    pub const UNSAFE_COMMAND: &str = "command is unsafe";
+    pub const UNKNOWN_COMMAND: &str = "command is unknown";
+    pub const BADLY_FORMED_COMMAND: &str = "command is badly formed, cannot scan code";
+    pub const DANGEROUS_UNSAFE_SWITCH_BODY: &str = r"dangerous unsafe switch body, use braces `{ .. }`";
+    pub const UNSAFE_CODE_BLOCK: &str = "unsafe code block, use braces `{ .. }`";
+    pub const DANGEROUS_UNSAFE_CODE_BLOCK: &str = "dangerous unsafe code block, use braces `{ .. }`";
+    pub const UNSAFE_EXPRESSION: &str = "unsafe expression, use braces `{ .. }`";
+    pub const DANGEROUS_UNSAFE_EXPRESSION: &str = "dangerous unsafe expression, use braces `{ .. }`";
+}
+
 pub mod rstcl;
 #[allow(
     non_upper_case_globals,
@@ -75,15 +101,15 @@ fn check_literal<'a, 'b>(ctx: &'a str, token: &'b rstcl::TclToken<'a>, line_numb
         vec![]
     } else if token_str.contains('$') {
         if token_str.chars().nth(0) == Some('"') {
-            vec![Danger(ctx, "expected literal, found `$`, use braces `{ .. }` instead of quotes `\" .. \"`", token_str, line_number)]
+            vec![Danger(ctx, messages::LITERAL_EXPECTED_DOLLAR_QUOTES, token_str, line_number)]
         } else {
-            vec![Danger(ctx, "expected literal, found `$`, use braces `{ .. }`", token_str, line_number)]
+            vec![Danger(ctx, messages::LITERAL_EXPECTED_DOLLAR_NO_QUOTES, token_str, line_number)]
         }
     } else if token_str.contains('[') {
         if token_str.chars().nth(0) == Some('"') {
-            vec![Danger(ctx, "expected literal, found `[`, use braces `{ .. }` instead of quotes `\" .. \"`", token_str, line_number)]
+            vec![Danger(ctx, messages::LITERAL_EXPECTED_BRACKET_QUOTES, token_str, line_number)]
         } else {
-            vec![Danger(ctx, "expected literal, found `[`, use braces `{ .. }`", token_str, line_number)]
+            vec![Danger(ctx, messages::LITERAL_EXPECTED_BRACKET_NO_QUOTES, token_str, line_number)]
         }
     } else {
         vec![]
@@ -156,9 +182,9 @@ fn check_token_characters<'a>(
         if !is_allowed_char {
             warnings.push(CheckResult::Warn(
                 ctx,
-                "token contains character(s) outside the standard ascii printable/whitespace set",
-                token.val, // The problematic token's value
-                command_line_number, // Use the command's line number for this warning
+                messages::NON_STANDARD_ASCII_CHARS,
+                token.val, // The problematic token\'s value
+                command_line_number, // Use the command\'s line number for this warning
             ));
             break; // Add only one warning per token value to avoid flooding
         }
@@ -206,7 +232,7 @@ pub fn check_command<'a, 'b>(
     // Now check if the command name itself isn't a literal
     // The line number for this check is the line of the command.
     if check_literal(ctx, &tokens[0], line_number).into_iter().len() > 0 {
-        results.push(Warn(ctx, "non-literal command, cannot scan", tokens[0].val, line_number));
+        results.push(Warn(ctx, messages::NON_LITERAL_COMMAND, tokens[0].val, line_number));
         return results;
     }
     // Now check the command-specific interpretation of arguments etc
@@ -219,7 +245,7 @@ pub fn check_command<'a, 'b>(
         "when" => {
             // check <event_name> is part of IRULE_EVENTS
             if !IRULE_EVENTS.contains(&tokens[1].val) {
-                results.push(Warn(ctx, "unknown event", tokens[1].val, line_number));
+                results.push(Warn(ctx, messages::UNKNOWN_EVENT, tokens[1].val, line_number));
             }
             match tokens.len() {
                 // when <event_name> [priority N] {}
@@ -354,15 +380,15 @@ pub fn check_command<'a, 'b>(
             if !options_terminated {
                 results.push(Danger(
                     ctx,
-                    "missing options terminator `--` permits argument injection",
+                    messages::MISSING_OPTIONS_TERMINATOR_SWITCH,
                     tokens[i].val, line_number // Line of the switch command
                 ));
             }
-            // The check for "Dangerous unquoted switch body" refers to the structure of the switch command's arguments.
+            // The check for \"Dangerous unquoted switch body\" refers to the structure of the switch command\'s arguments.
             // If tokens[i] is the string argument, its line number is implicitly that of the overall command.
-            // If the body (tokens[i+1]) is problematic, it's still part of this command line.
+            // If the body (tokens[i+1]) is problematic, it\'s still part of this command line.
             if (tokens.len() - i) != 2 { // This check might be too simplistic for line numbers if args are on new lines
-                results.push(Danger(ctx, "dangerous switch body, use braces `{ .. }`", tokens[i].val, line_number));
+                results.push(Danger(ctx, messages::DANGEROUS_SWITCH_BODY, tokens[i].val, line_number));
             }
             if regex_mode {
                 // If regex mode, the body's first parameter is a regex
@@ -397,7 +423,7 @@ pub fn check_command<'a, 'b>(
             if !options_terminated {
                 results.push(Danger(
                     ctx,
-                    "missing options terminator `--` permits argument injection",
+                    messages::MISSING_OPTIONS_TERMINATOR_CLASS,
                     tokens[i].val, line_number // Line of the class command
                 ));
             }
@@ -416,7 +442,7 @@ pub fn check_command<'a, 'b>(
             if pos > 0 {
                 results.push(Danger(
                     ctx,
-                    "missing options terminator `--` permits argument injection",
+                    messages::MISSING_OPTIONS_TERMINATOR_UNSET,
                     tokens[pos].val, line_number // Line of the unset command
                 ));
             }
@@ -448,7 +474,7 @@ pub fn check_command<'a, 'b>(
             if !options_terminated {
                 results.push(Danger(
                     ctx,
-                    "missing options terminator `--` permits argument injection",
+                    messages::MISSING_OPTIONS_TERMINATOR_REGEXP,
                     tokens[i].val, line_number // Line of the regexp/regsub command
                 ));
             }
@@ -495,7 +521,7 @@ pub fn check_command<'a, 'b>(
             if !options_terminated {
                 results.push(Danger(
                     ctx,
-                    "missing options terminator `--` permits argument injection",
+                    messages::MISSING_OPTIONS_TERMINATOR_TABLE,
                     tokens[i].val, line_number // Line of the table command
                 ));
             }
@@ -505,17 +531,17 @@ pub fn check_command<'a, 'b>(
         _ => {
             // Check if command is deprecated, unsupported, or unsafe
             if IRULE_COMMANDS_DEPRECATED.contains(&tokens[0].val) {
-                results.push(Warn(ctx, "command is deprecated", tokens[0].val, line_number));
+                results.push(Warn(ctx, messages::DEPRECATED_COMMAND, tokens[0].val, line_number));
             } else if IRULE_COMMANDS_UNSUPPORTED.contains(&tokens[0].val) {
-                results.push(Warn(ctx, "command is unsupported", tokens[0].val, line_number));
+                results.push(Warn(ctx, messages::UNSUPPORTED_COMMAND, tokens[0].val, line_number));
             } else if IRULE_COMMANDS_UNSAFE.contains(&tokens[0].val) {
-                results.push(Danger(ctx, "command is unsafe", tokens[0].val, line_number));
+                results.push(Danger(ctx, messages::UNSAFE_COMMAND, tokens[0].val, line_number));
             } else if IRULE_COMMANDS_NAMESPACED.contains(&tokens[0].val) {
                 // pass
             } else if IRULE_COMMANDS.contains(&tokens[0].val) {
                 // pass
             } else {
-                results.push(Warn(ctx, "command is unknown", tokens[0].val, line_number));
+                results.push(Warn(ctx, messages::UNKNOWN_COMMAND, tokens[0].val, line_number));
             }
 
             iter::repeat(Code::Normal).take(tokens.len() - 1).collect()
@@ -524,7 +550,7 @@ pub fn check_command<'a, 'b>(
     if param_types.len() != tokens.len() - 1 {
         results.push(Danger(
             ctx,
-            "command is badly formed, cannot scan code",
+            messages::BADLY_FORMED_COMMAND,
             tokens[0].val, line_number // Line of the command
         ));
         return results;
@@ -553,9 +579,9 @@ fn check_switch_body<'a, 'b>(ctx: &'a str, token: &'b rstcl::TclToken<'a>, regex
     let body_str = token.val;
     if !(body_str.starts_with("{") && body_str.ends_with("}")) {
         // This finding is about the switch body token itself, so use base_line_number
-        return vec![Danger(ctx, r#"dangerous unsafe switch body, use braces `{ .. }`"#, body_str, base_line_number)];
+        return vec![Danger(ctx, messages::DANGEROUS_UNSAFE_SWITCH_BODY, body_str, base_line_number)];
     }
-    // Body isn't inherently dangerous, let's check body elements
+    // Body isn\'t inherently dangerous, let\'s check body elements
     let script_str = &body_str[1..body_str.len() - 1];
 
     let mut all_results: Vec<CheckResult<'a>> = vec![];
@@ -600,11 +626,11 @@ fn check_block<'a, 'b>(ctx: &'a str, token: &'b rstcl::TclToken<'a>, base_line_n
     if !(block_str.starts_with("{") && block_str.ends_with("}")) {
         // finding is about the code block token itself, so use base_line_number
         return vec![match is_safe_val(token) {
-            true => Warn(ctx, "unsafe code block, use braces `{ .. }`", block_str, base_line_number),
-            false => Danger(ctx, "dangerous unsafe code block, use braces `{ .. }`", block_str, base_line_number),
+            true => Warn(ctx, messages::UNSAFE_CODE_BLOCK, block_str, base_line_number),
+            false => Danger(ctx, messages::DANGEROUS_UNSAFE_CODE_BLOCK, block_str, base_line_number),
         }];
     }
-    // Block isn\'t inherently dangerous, let\'s check functions inside the block
+    // Block isn\\\'t inherently dangerous, let\\\'s check functions inside the block
     let script_str = &block_str[1..block_str.len() - 1];
     // scan_script needs the starting line number of script_str.
     // If token.val is \"{}\", its line is base_line_number. The content inside also starts there.
@@ -618,9 +644,9 @@ fn check_expr<'a, 'b>(ctx: &'a str, token: &'b rstcl::TclToken<'a>, base_line_nu
     let expr_str = token.val;
     if !(expr_str.starts_with("{") && expr_str.ends_with("}")) {
         // This finding is about the expr token itself, so use base_line_number
-        results.push(match is_safe_val(token) { // is_safe_val doesn\'t use line_number
-            true => Warn(ctx, "unsafe expression, use braces `{ .. }`", expr_str, base_line_number),
-            false => Danger(ctx, "dangerous unsafe expression, use braces `{ .. }`", expr_str, base_line_number),
+        results.push(match is_safe_val(token) { // is_safe_val doesn\\\'t use line_number
+            true => Warn(ctx, messages::UNSAFE_EXPRESSION, expr_str, base_line_number),
+            false => Danger(ctx, messages::DANGEROUS_UNSAFE_EXPRESSION, expr_str, base_line_number),
         });
         return results;
     };

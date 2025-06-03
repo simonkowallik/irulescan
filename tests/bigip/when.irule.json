@@ -3,7 +3,7 @@
     "filepath": "when.irule",
     "warning": [
       {
-        "message": "unknown event",
+        "message": "event unknown",
         "issue_location": "HTTP_REQUST",
         "context": "when HTTP_REQUST {    # typo    expr 1}",
         "line": 1
@@ -15,7 +15,7 @@
         "line": 3
       },
       {
-        "message": "unknown event",
+        "message": "event unknown",
         "issue_location": "HTTP_REQUST",
         "context": "when HTTP_REQUST priority 2 {    expr 2}",
         "line": 5
@@ -27,7 +27,7 @@
         "line": 6
       },
       {
-        "message": "unknown event",
+        "message": "event unknown",
         "issue_location": "HTTP_REQUST",
         "context": "when HTTP_REQUST timing on {    expr 3}",
         "line": 8
@@ -39,7 +39,7 @@
         "line": 9
       },
       {
-        "message": "unknown event",
+        "message": "event unknown",
         "issue_location": "HTTP_REQUST",
         "context": "when HTTP_REQUST timing on priority 4 {    expr 4}",
         "line": 11
