@@ -159,6 +159,21 @@ function test_apiserver_plain_code {
     kill $(jobs -p) > /dev/null
 }
 
+# check pwd is "tests"
+if [[ $(basename "$PWD") != "tests" ]]; then
+    echo "Please run this script from the 'tests' directory."
+    exit 1
+fi
+
+if ! command -v irulescan &> /dev/null; then
+    echo "irulescan command not found. Please install irulescan first."
+    exit 1
+fi
+if ! command -v jq &> /dev/null; then
+    echo "jq command not found. Please install jq first."
+    exit 1
+fi
+
 # tests
 
 # apiserver tests
