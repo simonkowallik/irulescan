@@ -270,7 +270,7 @@ pub(crate) async fn run_apiserver(listen_addr: SocketAddr) {
         .with(tracing_subscriber::fmt::layer())
         .init();
     // API routes and Rapidoc
-    let app = Router::new()
+    let apirouter = Router::new()
         .merge(RapiDoc::with_openapi("/openapi.json", ApiDoc::openapi()).path("/").custom_html(RAPIDOC_HTML))
         // serve javascript for Rapidoc (/rapidoc.js", RAPIDOC_JS)
         .route("/rapidoc.js", axum::routing::get(|| async {
@@ -286,7 +286,7 @@ pub(crate) async fn run_apiserver(listen_addr: SocketAddr) {
         )
         .layer(DefaultBodyLimit::max(10 * 1024 * 1024)); // 10MB limit
 
-    tracing::info!("irulescan OpenAPI listening on {}", listen_addr);
+    tracing::info!("irulescan OpenAPI listening on http://{}", listen_addr);
     tracing::info!("RapiDoc UI available at /");
     tracing::info!("OpenAPI 3.1 spec available at /openapi.json");
 
@@ -298,7 +298,7 @@ pub(crate) async fn run_apiserver(listen_addr: SocketAddr) {
         }
     };
 
-    let server = axum::serve(listener, app);
+    let server = axum::serve(listener, apirouter);
 
     match tokio::select! {
         result = server => {
@@ -314,6 +314,6 @@ pub(crate) async fn run_apiserver(listen_addr: SocketAddr) {
         }
     } {
         Err(_) => std::process::exit(1),
-        Ok(_) => {}
+        Ok(_) => {},
     }
 }

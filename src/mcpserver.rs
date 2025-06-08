@@ -5,15 +5,21 @@ use rmcp::{
     Error as McpError, RoleServer, ServerHandler, model::*, schemars,
     service::RequestContext, tool,
 };
-use rmcp::transport::streamable_http_server::axum::StreamableHttpServer;
+use rmcp::transport::streamable_http_server::{
+    StreamableHttpService, session::local::LocalSessionManager,
+};
 use serde_json::json;
+use tokio::net::TcpListener;
+use tower_http::trace::{TraceLayer, DefaultMakeSpan};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::scan_and_format_results;
 
+mod goodpractices_res;
+use goodpractices_res::GOOD_PRACTICES_MD;
+
 const GOOD_PRACTICES_URI: &str = "irulescan://good-practices";
 const GOOD_PRACTICES_NAME: &str = "iRule Security Good Practices";
-const GOOD_PRACTICES_CONTENT: &str = include_str!("../files/good-practices.md");
 
 #[derive(Debug, serde::Deserialize, schemars::JsonSchema)]
 pub struct ScanRequest {
@@ -49,7 +55,7 @@ impl Irulescan {
                 if let Some(result_obj) = scan_results.as_array().and_then(|arr| arr.get(0)) {
                     let mut result_map = result_obj.as_object().cloned().unwrap_or_else(serde_json::Map::new);
                     if self.include_additional_context {
-                        result_map.insert("good_practices".to_string(), serde_json::Value::String(GOOD_PRACTICES_CONTENT.to_string()));
+                        result_map.insert("good_practices".to_string(), serde_json::Value::String(GOOD_PRACTICES_MD.to_string()));
                     }
                     let content = Content::json(serde_json::Value::Object(result_map))?;
                     Ok(CallToolResult::success(vec![content]))
@@ -116,7 +122,7 @@ Use the 'irulescan://good-practices' resource to get a list of iRule security be
         match uri.as_str() {
             GOOD_PRACTICES_URI => {
                 Ok(ReadResourceResult {
-                    contents: vec![ResourceContents::text(GOOD_PRACTICES_CONTENT.to_string(), uri)],
+                    contents: vec![ResourceContents::text(GOOD_PRACTICES_MD.to_string(), uri)],
                 })
             }
             _ => Err(McpError::resource_not_found("resource_not_found",Some(json!({"uri": uri})))),
@@ -124,7 +130,7 @@ Use the 'irulescan://good-practices' resource to get a list of iRule security be
     }
 }
 
-pub async fn run_mcpserver(listen_addr: SocketAddr, include_additional_context: bool) {
+pub async fn run_mcpserver(listen_addr: SocketAddr, include_additional_context: bool) -> anyhow::Result<()> {
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(
             std::env::var("IRULESCAN_LOG")
@@ -133,21 +139,47 @@ pub async fn run_mcpserver(listen_addr: SocketAddr, include_additional_context: 
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    tracing::info!("irulescan MCP server listening on {}", listen_addr);
+    let mcpservice = StreamableHttpService::new(
+        move || Irulescan::new(include_additional_context),
+        LocalSessionManager::default().into(),
+        Default::default(),
+    );
+
+    let mcprouter = axum::Router::new()
+        .route_service("/", mcpservice)
+        .layer(TraceLayer::new_for_http()
+            .make_span_with(DefaultMakeSpan::new().include_headers(true))
+        );
+
+    tracing::info!("irulescan MCP server listening on http://{}", listen_addr);
     if include_additional_context {
         tracing::info!("Including good practices in the scan results on findings.");
     }
 
-    match StreamableHttpServer::serve(listen_addr).await {
-        Ok(server) => {
-            let server_with_service = server.with_service(move || Irulescan::new(include_additional_context));
-            if let Ok(_) = tokio::signal::ctrl_c().await {
-                server_with_service.cancel();
-            }
-        },
+    let listener = match TcpListener::bind(listen_addr).await {
+        Ok(l) => l,
         Err(e) => {
-            tracing::error!("Failed to start irulescan MCP server: {}", e);
+            tracing::error!("Failed to bind to address {}: {}", listen_addr, e);
             std::process::exit(1);
         }
+    };
+
+    let server = axum::serve(listener, mcprouter);
+
+    match tokio::select! {
+        result = server => {
+            if let Err(e) = result {
+                tracing::error!("Failed to start irulescan MCP server: {}", e);
+                Err(e)
+            } else {
+                Ok(())
+            }
+        }
+        _ = tokio::signal::ctrl_c() => {
+            Ok(())
+        }
+    } {
+        Err(_) => std::process::exit(1),
+        Ok(_) => Ok(()),
     }
 }

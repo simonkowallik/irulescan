@@ -330,7 +330,10 @@ async fn main() {
                     }
                 }
             }
-            mcpserver::run_mcpserver(final_listen_addr, include_additional_context).await;
+            if let Err(e) = mcpserver::run_mcpserver(final_listen_addr, include_additional_context).await {
+                eprintln!("Failed to start irulescan MCP server: {}", e);
+                std::process::exit(1);
+            }
         }
         Commands::Apiserver { listen } => {
             let clap_default_addr = SocketAddr::from(([127, 0, 0, 1], 8000));

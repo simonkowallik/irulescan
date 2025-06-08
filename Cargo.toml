@@ -31,7 +31,7 @@ tempfile = "3.19.1"
 utoipa = { version = "5.3.1", features = ["axum_extras"] }
 utoipa-rapidoc = { version = "6.0.0", features = ["axum"] }
 # MCP - bleeding edge (dev) to support streamable http transport and other relevant features
-rmcp = { git = "https://github.com/modelcontextprotocol/rust-sdk", rev = "a66f66ae345a0fafde1e2ee496ec137d77aef82a", features = ["transport-streamable-http-server", "transport-worker"] }
+rmcp = { git = "https://github.com/modelcontextprotocol/rust-sdk", rev = "db03f63e76b5b32f65d34a1bd08ae56dab595f60", features = ["transport-streamable-http-server", "transport-worker"] }
 anyhow = "1.0.98"
 async-trait = "0.1.88"
 tokio-util = "0.7.15"
