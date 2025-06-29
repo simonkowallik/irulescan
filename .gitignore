@@ -10,3 +10,5 @@ src/tcl.rs
 .vscode
 .idea
 **/*.DS_Store
+cosign.*
+melange.*
