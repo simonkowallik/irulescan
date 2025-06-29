@@ -227,13 +227,42 @@ Here is a demo of the apiserver UI:
 
 <p align="center">
 <a href="https://github.com/simonkowallik/irulescan">
-<img src="https://github.com/simonkowallik/hosted_content/raw/main/images/irulescan_apiserver.gif" alt="simonkowallik/irulescan:apiserver">
+<img src="https://github.com/simonkowallik/hosted_content/raw/main/images/irulescan%20apiserver.gif" alt="simonkowallik/irulescan:apiserver">
 </a>
 </p>
 
 ### MCP Server
 
-#### TODO: document MCP Server usage
+Start the MCP server:
+
+```bash
+docker run -t --rm -p 8000:8000 simonkowallik/irulescan:mcpserver
+```
+
+With VSCode and Copilot, follow [Use MCP servers in VS Code (Preview)](https://code.visualstudio.com/docs/copilot/chat/mcp-servers#_enable-mcp-support-in-vs-code).
+
+The below is a - per workspace - config example:
+
+```bash
+mkdir .vscode
+cat <<'EOF' > .vscode/mcp.json
+{
+    "servers": {
+        "irulescan": {
+            "url": "http://localhost:8000"
+        }
+    }
+}
+EOF
+```
+
+Here is a demo of the mcpserver using VSCode:
+
+<p align="center">
+<a href="https://github.com/simonkowallik/irulescan">
+<img src="https://github.com/simonkowallik/hosted_content/raw/main/images/irulescan%20mcp%20vscode.gif" alt="simonkowallik/irulescan:apiserver">
+</a>
+</p>
 
 ## Additional resources
 

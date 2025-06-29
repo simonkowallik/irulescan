@@ -1,5 +1,5 @@
 CARGO := cargo
-MELANGE_BUILD := sudo melange build
+MELANGE_BUILD := sudo melange build --signing-key $(SIGNING_KEY)
 MELANGE_SIGN_INDEX := melange sign-index
 DOCKER_LOAD := sudo docker load
 APKO_BUILD := apko build
@@ -43,6 +43,7 @@ irulescan-pkg-build:
 
 irulescan: sign-apkindex $(ALL_IRULESCAN_TARGETS)
 
+define IRULESCAN_TEMPLATE
 irulescan-$(1):
 	@echo "Building irulescan $(1) container..."
 	mkdir -p $(ARTIFACTS_DIR)/$(1)/
@@ -52,7 +53,19 @@ irulescan-$(1):
 		irulescan:$(1) \
 		$(ARTIFACTS_DIR)/$(1)/irulescan-$(1).tar
 	$(DOCKER_LOAD) < $(ARTIFACTS_DIR)/$(1)/irulescan-$(1).tar
+endef
 
+$(foreach name,$(NAMES),$(eval $(call IRULESCAN_TEMPLATE,$(name))))
+
+signing-keys:
+	@echo "Generating signing keys..."
+	melange keygen --key-size 4096 $(SIGNING_KEY)
+	COSIGN_PASSWORD="" cosign import-key-pair --key=$(SIGNING_KEY) --output-key-prefix=cosign
+	rm cosign.pub
+	ln -s $(SIGNING_KEY).pub cosign.pub
+	mkdir -p signkeys/
+	cp $(SIGNING_KEY).pub signkeys/
+	cp cosign.pub signkeys/
 
 clean:
 	@echo "Cleaning up project..."
