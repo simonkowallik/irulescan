@@ -1,0 +1,16 @@
+name: Scheduled Test Build
+  
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '5 5 */14 * *'
+permissions:
+  contents: write
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger another workflow
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          event-type: start-scheduled-test
