@@ -1,15 +1,14 @@
+LIBTCL_MELANGE_CONFIG := files/melange-libtcl-irulescan.yaml
+IRULESCAN_MELANGE_CONFIG := melange.yaml
+SIGNING_KEY := melange.rsa
+PACKAGES_DIR := packages
+GENERATED_TCL_RS := src/tcl.rs
+ARTIFACTS_DIR := artifacts
 CARGO := cargo
 MELANGE_BUILD := sudo melange build --signing-key $(SIGNING_KEY)
 MELANGE_SIGN_INDEX := melange sign-index
 DOCKER_LOAD := sudo docker load
 APKO_BUILD := apko build
-
-LIBTCL_MELANGE_CONFIG := ./files/melange-libtcl-irulescan.yaml
-IRULESCAN_MELANGE_CONFIG := ./melange.yaml
-SIGNING_KEY := melange.rsa
-PACKAGES_DIR := packages
-GENERATED_TCL_RS := src/tcl.rs
-ARTIFACTS_DIR := artifacts
 
 NAMES := apiserver mcpserver latest
 # Ensure yq is installed and available in your environment for this to work
