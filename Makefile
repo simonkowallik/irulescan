@@ -59,13 +59,57 @@ $(foreach name,$(NAMES),$(eval $(call IRULESCAN_TEMPLATE,$(name))))
 
 signing-keys:
 	@echo "Generating signing keys..."
-	melange keygen --key-size 4096 $(SIGNING_KEY)
+	#melange keygen --key-size 4096 $(SIGNING_KEY)
 	COSIGN_PASSWORD="" cosign import-key-pair --key=$(SIGNING_KEY) --output-key-prefix=cosign
 	rm cosign.pub
 	ln -s $(SIGNING_KEY).pub cosign.pub
 	mkdir -p signkeys/
 	cp $(SIGNING_KEY).pub signkeys/
 	cp cosign.pub signkeys/
+
+tag-dockerhub:
+	docker manifest create irulescan:latest \
+	  --amend irulescan:latest-amd64 \
+	  --amend irulescan:latest-arm64
+	docker manifest create irulescan:apiserver \
+	  --amend irulescan:apiserver-amd64 \
+	  --amend irulescan:apiserver-arm64
+	docker manifest create irulescan:mcpserver \
+	  --amend irulescan:mcpserver-amd64 \
+	  --amend irulescan:mcpserver-arm64
+	docker manifest push irulescan:latest
+	docker manifest push irulescan:apiserver
+	docker manifest push irulescan:mcpserver
+
+tag-ghcr:
+	docker manifest create ghcr.io/simonkowallik/irulescan:latest \
+	  --amend ghcr.io/simonkowallik/irulescan:latest-amd64 \
+	  --amend ghcr.io/simonkowallik/irulescan:latest-arm64
+	docker manifest create ghcr.io/simonkowallik/irulescan:apiserver \
+	  --amend ghcr.io/simonkowallik/irulescan:apiserver-amd64 \
+	  --amend ghcr.io/simonkowallik/irulescan:apiserver-arm64
+	docker manifest create ghcr.io/simonkowallik/irulescan:mcpserver \
+	  --amend ghcr.io/simonkowallik/irulescan:mcpserver-amd64 \
+	  --amend ghcr.io/simonkowallik/irulescan:mcpserver-arm64
+	docker manifest push ghcr.io/simonkowallik/irulescan:latest
+	docker manifest push ghcr.io/simonkowallik/irulescan:apiserver
+	docker manifest push ghcr.io/simonkowallik/irulescan:mcpserver
+
+sign-dockerhub:
+	cosign sign --key cosign.key --recursive \
+	irulescan:latest
+	cosign sign --key cosign.key --recursive \
+	irulescan:apiserver
+	cosign sign --key cosign.key --recursive \
+	irulescan:mcpserver
+
+sign-ghcr:
+	cosign sign --key cosign.key --recursive \
+  	ghcr.io/simonkowallik/irulescan:latest
+	cosign sign --key cosign.key --recursive \
+  	ghcr.io/simonkowallik/irulescan:apiserver
+	cosign sign --key cosign.key --recursive \
+  	ghcr.io/simonkowallik/irulescan:mcpserver
 
 clean:
 	@echo "Cleaning up project..."
