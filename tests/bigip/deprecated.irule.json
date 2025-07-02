@@ -2,35 +2,180 @@
   {
     "filepath": "deprecated.irule",
     "warning": [
-      "Use of deprecated command: at `accumulate` in `accumulate`",
-      "Use of deprecated command: at `client_addr` in `client_addr`",
-      "Use of deprecated command: at `client_port` in `client_port`",
-      "Use of deprecated command: at `decode_uri` in `decode_uri`",
-      "Use of deprecated command: at `findclass` in `findclass`",
-      "Use of deprecated command: at `http_cookie` in `http_cookie`",
-      "Use of deprecated command: at `http_header` in `http_header`",
-      "Use of deprecated command: at `http_host` in `http_host`",
-      "Use of deprecated command: at `http_method` in `http_method`",
-      "Use of deprecated command: at `http_uri` in `http_uri`",
-      "Use of deprecated command: at `http_version` in `http_version`",
-      "Use of deprecated command: at `imid` in `imid`",
-      "Use of deprecated command: at `ip_addr` in `ip_addr`",
-      "Use of deprecated command: at `ip_protocol` in `ip_protocol`",
-      "Use of deprecated command: at `ip_tos` in `ip_tos`",
-      "Use of deprecated command: at `ip_ttl` in `ip_ttl`",
-      "Use of deprecated command: at `link_qos` in `link_qos`",
-      "Use of deprecated command: at `local_addr` in `local_addr`",
-      "Use of deprecated command: at `local_port` in `local_port`",
-      "Use of deprecated command: at `matchclass` in `matchclass`",
-      "Use of deprecated command: at `redirect` in `redirect`",
-      "Use of deprecated command: at `remote_addr` in `remote_addr`",
-      "Use of deprecated command: at `remote_port` in `remote_port`",
-      "Use of deprecated command: at `server_addr` in `server_addr`",
-      "Use of deprecated command: at `server_port` in `server_port`",
-      "Use of deprecated command: at `urlcatblindquery` in `urlcatblindquery`",
-      "Use of deprecated command: at `urlcatquery` in `urlcatquery`",
-      "Use of deprecated command: at `use` in `use`",
-      "Use of deprecated command: at `vlan_id` in `vlan_id`"
+      {
+        "message": "command is deprecated",
+        "issue_location": "accumulate",
+        "context": "accumulate",
+        "line": 1
+      },
+      {
+        "message": "command is deprecated",
+        "issue_location": "client_addr",
+        "context": "client_addr",
+        "line": 2
+      },
+      {
+        "message": "command is deprecated",
+        "issue_location": "client_port",
+        "context": "client_port",
+        "line": 3
+      },
+      {
+        "message": "command is deprecated",
+        "issue_location": "decode_uri",
+        "context": "decode_uri",
+        "line": 4
+      },
+      {
+        "message": "command is deprecated",
+        "issue_location": "findclass",
+        "context": "findclass",
+        "line": 5
+      },
+      {
+        "message": "command is deprecated",
+        "issue_location": "http_cookie",
+        "context": "http_cookie",
+        "line": 6
+      },
+      {
+        "message": "command is deprecated",
+        "issue_location": "http_header",
+        "context": "http_header",
+        "line": 7
+      },
+      {
+        "message": "command is deprecated",
+        "issue_location": "http_host",
+        "context": "http_host",
+        "line": 8
+      },
+      {
+        "message": "command is deprecated",
+        "issue_location": "http_method",
+        "context": "http_method",
+        "line": 9
+      },
+      {
+        "message": "command is deprecated",
+        "issue_location": "http_uri",
+        "context": "http_uri",
+        "line": 10
+      },
+      {
+        "message": "command is deprecated",
+        "issue_location": "http_version",
+        "context": "http_version",
+        "line": 11
+      },
+      {
+        "message": "command is deprecated",
+        "issue_location": "imid",
+        "context": "imid",
+        "line": 12
+      },
+      {
+        "message": "command is deprecated",
+        "issue_location": "ip_addr",
+        "context": "ip_addr",
+        "line": 13
+      },
+      {
+        "message": "command is deprecated",
+        "issue_location": "ip_protocol",
+        "context": "ip_protocol",
+        "line": 14
+      },
+      {
+        "message": "command is deprecated",
+        "issue_location": "ip_tos",
+        "context": "ip_tos",
+        "line": 15
+      },
+      {
+        "message": "command is deprecated",
+        "issue_location": "ip_ttl",
+        "context": "ip_ttl",
+        "line": 16
+      },
+      {
+        "message": "command is deprecated",
+        "issue_location": "link_qos",
+        "context": "link_qos",
+        "line": 17
+      },
+      {
+        "message": "command is deprecated",
+        "issue_location": "local_addr",
+        "context": "local_addr",
+        "line": 18
+      },
+      {
+        "message": "command is deprecated",
+        "issue_location": "local_port",
+        "context": "local_port",
+        "line": 19
+      },
+      {
+        "message": "command is deprecated",
+        "issue_location": "matchclass",
+        "context": "matchclass",
+        "line": 20
+      },
+      {
+        "message": "command is deprecated",
+        "issue_location": "redirect",
+        "context": "redirect",
+        "line": 21
+      },
+      {
+        "message": "command is deprecated",
+        "issue_location": "remote_addr",
+        "context": "remote_addr",
+        "line": 22
+      },
+      {
+        "message": "command is deprecated",
+        "issue_location": "remote_port",
+        "context": "remote_port",
+        "line": 23
+      },
+      {
+        "message": "command is deprecated",
+        "issue_location": "server_addr",
+        "context": "server_addr",
+        "line": 24
+      },
+      {
+        "message": "command is deprecated",
+        "issue_location": "server_port",
+        "context": "server_port",
+        "line": 25
+      },
+      {
+        "message": "command is deprecated",
+        "issue_location": "urlcatblindquery",
+        "context": "urlcatblindquery",
+        "line": 26
+      },
+      {
+        "message": "command is deprecated",
+        "issue_location": "urlcatquery",
+        "context": "urlcatquery",
+        "line": 27
+      },
+      {
+        "message": "command is deprecated",
+        "issue_location": "use",
+        "context": "use",
+        "line": 28
+      },
+      {
+        "message": "command is deprecated",
+        "issue_location": "vlan_id",
+        "context": "vlan_id",
+        "line": 29
+      }
     ],
     "dangerous": []
   }

@@ -3,7 +3,12 @@
     "filepath": "test3.irule",
     "warning": [],
     "dangerous": [
-      "badly formed command, cannot scan code at `while` in `while {$n < 30}      \\  {    log local0. [set n [expr $n + 30]]}`"
+      {
+        "message": "command is badly formed, cannot scan code",
+        "issue_location": "while",
+        "context": "while {$n < 30}      \\  {    log local0. [set n [expr $n + 30]]}",
+        "line": 4
+      }
     ]
   }
 ]

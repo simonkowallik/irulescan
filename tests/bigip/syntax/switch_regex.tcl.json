@@ -1,0 +1,33 @@
+[
+  {
+    "filepath": "switch_regex.tcl",
+    "warning": [
+      {
+        "message": "unsafe expression, use braces `{ .. }`",
+        "issue_location": "1",
+        "context": "expr 1",
+        "line": 4
+      },
+      {
+        "message": "unsafe expression, use braces `{ .. }`",
+        "issue_location": "2",
+        "context": "expr 2",
+        "line": 4
+      },
+      {
+        "message": "unsafe expression, use braces `{ .. }`",
+        "issue_location": "3",
+        "context": "expr 3",
+        "line": 17
+      }
+    ],
+    "dangerous": [
+      {
+        "message": "literal expected, found `[`, use braces `{ .. }` instead of quotes `\" .. \"`",
+        "issue_location": "\"[expr 888+111]\"",
+        "context": "switch -- $myvar {    {[expr 1+1]} {        puts \"myvar:$myvar\"    }    \"[expr 888+111]\" {        puts \"3:[expr 3]\"    }}",
+        "line": 16
+      }
+    ]
+  }
+]

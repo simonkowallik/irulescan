@@ -2,10 +2,54 @@
   {
     "filepath": "when.irule",
     "warning": [
-      "Unquoted expr at `1` in `expr 1`",
-      "Unquoted expr at `2` in `expr 2`",
-      "Unquoted expr at `3` in `expr 3`",
-      "Unquoted expr at `4` in `expr 4`"
+      {
+        "message": "event unknown",
+        "issue_location": "HTTP_REQUST",
+        "context": "when HTTP_REQUST {    # typo    expr 1}",
+        "line": 1
+      },
+      {
+        "message": "unsafe expression, use braces `{ .. }`",
+        "issue_location": "1",
+        "context": "expr 1",
+        "line": 3
+      },
+      {
+        "message": "event unknown",
+        "issue_location": "HTTP_REQUST",
+        "context": "when HTTP_REQUST priority 2 {    expr 2}",
+        "line": 5
+      },
+      {
+        "message": "unsafe expression, use braces `{ .. }`",
+        "issue_location": "2",
+        "context": "expr 2",
+        "line": 6
+      },
+      {
+        "message": "event unknown",
+        "issue_location": "HTTP_REQUST",
+        "context": "when HTTP_REQUST timing on {    expr 3}",
+        "line": 8
+      },
+      {
+        "message": "unsafe expression, use braces `{ .. }`",
+        "issue_location": "3",
+        "context": "expr 3",
+        "line": 9
+      },
+      {
+        "message": "event unknown",
+        "issue_location": "HTTP_REQUST",
+        "context": "when HTTP_REQUST timing on priority 4 {    expr 4}",
+        "line": 11
+      },
+      {
+        "message": "unsafe expression, use braces `{ .. }`",
+        "issue_location": "4",
+        "context": "expr 4",
+        "line": 12
+      }
     ],
     "dangerous": []
   }

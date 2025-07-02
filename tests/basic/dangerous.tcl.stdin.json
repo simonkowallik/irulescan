@@ -1,9 +1,24 @@
 {
   "dangerous": [
-    "Dangerous unquoted expr at `$one` in `expr 1 + $one`"
+    {
+      "message": "dangerous unsafe expression, use braces `{ .. }`",
+      "issue_location": "$one",
+      "context": "expr 1 + $one",
+      "line": 2
+    }
   ],
   "warning": [
-    "Unquoted expr at `1` in `expr 1 + $one`",
-    "Unquoted expr at `+` in `expr 1 + $one`"
+    {
+      "message": "unsafe expression, use braces `{ .. }`",
+      "issue_location": "1",
+      "context": "expr 1 + $one",
+      "line": 2
+    },
+    {
+      "message": "unsafe expression, use braces `{ .. }`",
+      "issue_location": "+",
+      "context": "expr 1 + $one",
+      "line": 2
+    }
   ]
 }

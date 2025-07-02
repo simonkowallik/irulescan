@@ -2,16 +2,66 @@
   {
     "filepath": "conditionals.irule",
     "warning": [
-      "Unquoted expr at `1` in `expr 1`",
-      "Unquoted expr at `2` in `expr 2`",
-      "Unquoted expr at `3` in `expr 3`",
-      "Unquoted expr at `4` in `expr 4`",
-      "Unquoted expr at `5` in `expr 5`",
-      "Unquoted expr at `6` in `expr 6`",
-      "Unquoted expr at `7` in `expr 7`",
-      "Unquoted expr at `8` in `expr 8`",
-      "Unquoted expr at `9` in `expr 9`",
-      "Unquoted expr at `10` in `expr 10`"
+      {
+        "message": "unsafe expression, use braces `{ .. }`",
+        "issue_location": "1",
+        "context": "expr 1",
+        "line": 2
+      },
+      {
+        "message": "unsafe expression, use braces `{ .. }`",
+        "issue_location": "2",
+        "context": "expr 2",
+        "line": 5
+      },
+      {
+        "message": "unsafe expression, use braces `{ .. }`",
+        "issue_location": "3",
+        "context": "expr 3",
+        "line": 8
+      },
+      {
+        "message": "unsafe expression, use braces `{ .. }`",
+        "issue_location": "4",
+        "context": "expr 4",
+        "line": 11
+      },
+      {
+        "message": "unsafe expression, use braces `{ .. }`",
+        "issue_location": "5",
+        "context": "expr 5",
+        "line": 14
+      },
+      {
+        "message": "unsafe expression, use braces `{ .. }`",
+        "issue_location": "6",
+        "context": "expr 6",
+        "line": 17
+      },
+      {
+        "message": "unsafe expression, use braces `{ .. }`",
+        "issue_location": "7",
+        "context": "expr 7",
+        "line": 20
+      },
+      {
+        "message": "unsafe expression, use braces `{ .. }`",
+        "issue_location": "8",
+        "context": "expr 8",
+        "line": 23
+      },
+      {
+        "message": "unsafe expression, use braces `{ .. }`",
+        "issue_location": "9",
+        "context": "expr 9",
+        "line": 26
+      },
+      {
+        "message": "unsafe expression, use braces `{ .. }`",
+        "issue_location": "10",
+        "context": "expr 10",
+        "line": 29
+      }
     ],
     "dangerous": []
   }

@@ -3,8 +3,18 @@
     "filepath": "unsafe.irule",
     "warning": [],
     "dangerous": [
-      "Use of unsafe command: at `uplevel` in `uplevel`",
-      "Use of unsafe command: at `history` in `history`"
+      {
+        "message": "command is unsafe",
+        "issue_location": "uplevel",
+        "context": "uplevel",
+        "line": 1
+      },
+      {
+        "message": "command is unsafe",
+        "issue_location": "history",
+        "context": "history",
+        "line": 2
+      }
     ]
   }
 ]

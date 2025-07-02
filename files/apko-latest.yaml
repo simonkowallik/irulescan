@@ -1,0 +1,20 @@
+include: files/apko-base.yaml
+
+environment:
+  LC_ALL: "C.UTF-8"
+  LANG: "C.UTF-8"
+  IRULESCAN_FILE_EXTENSIONS: ".tcl,.irule,.irul"
+
+paths:
+  - path: /scandir
+    type: directory
+    uid: 1000
+    gid: 1000
+    permissions: 0o755
+
+work-dir: /scandir
+
+volumes:
+  - /scandir
+
+cmd: check .

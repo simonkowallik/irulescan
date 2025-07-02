@@ -1,0 +1,59 @@
+vars:
+  package: irulescan
+  version: 3.0.0
+  rust-toolchain: nightly-2025-05-09
+package:
+  name: ${{vars.package}}
+  version: ${{vars.version}}
+  epoch: 0
+  description: "irulescan - security analyzer for iRules"
+  copyright:
+    - license: MIT
+  target-architecture:
+    - aarch64
+    - x86_64
+  dependencies:
+    runtime:
+      - glibc
+      - libgcc
+      - ld-linux
+      - libtcl-irulescan
+
+environment:
+  contents:
+    keyring:
+      - https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
+      - ./melange.rsa.pub
+    repositories:
+      - https://packages.wolfi.dev/os
+      - '@local packages'
+    packages:
+      - 'libtcl-irulescan-dev@local'
+      - 'libtcl-irulescan@local'
+      - ca-certificates-bundle
+      - build-base
+      - busybox
+      - rustup
+      - clang
+
+pipeline:
+  - runs: |
+      rustup toolchain install ${{vars.rust-toolchain}} --profile minimal
+      rustup default ${{vars.rust-toolchain}}
+
+  - runs: |
+      export PATH="$PATH:$(rustup show home)/toolchains/$(rustup show active-toolchain | cut -d ' ' -f 1)/bin:/home/build/.cargo/bin"
+      cargo install cargo-auditable cargo-audit
+
+  #- uses: cargo/build
+      
+  - runs: |
+      export PATH="$PATH:$(rustup show home)/toolchains/$(rustup show active-toolchain | cut -d ' ' -f 1)/bin:/home/build/.cargo/bin"
+      cargo auditable build --release
+
+  - runs: |
+      install -Dm755 "${{package.srcdir}}"/target/release/irulescan "${{targets.contextdir}}"/usr/bin/irulescan
+      install -Dm644 "${{package.srcdir}}"/README.md "${{targets.contextdir}}"/usr/share/doc/irulescan/README.md
+      install -Dm644 "${{package.srcdir}}"/LICENSE "${{targets.contextdir}}"/usr/share/licenses/irulescan/LICENSE
+
+  - uses: strip

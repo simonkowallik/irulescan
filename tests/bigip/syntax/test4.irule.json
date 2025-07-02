@@ -3,7 +3,12 @@
     "filepath": "test4.irule",
     "warning": [],
     "dangerous": [
-      "Dangerous unquoted expr at `$x` in `expr $x`"
+      {
+        "message": "dangerous unsafe expression, use braces `{ .. }`",
+        "issue_location": "$x",
+        "context": "expr $x",
+        "line": 3
+      }
     ]
   }
 ]
