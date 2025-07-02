@@ -9,9 +9,6 @@
 ---
 
 <p align="center">
-<a href="https://github.com/simonkowallik/irulescan/actions/workflows/test.yaml">
-    <img src="https://img.shields.io/github/actions/workflow/status/simonkowallik/irulescan/test.yaml" alt="build">
-</a>
 <a href="https://hub.docker.com/r/simonkowallik/irulescan">
     <img src="https://img.shields.io/docker/image-size/simonkowallik/irulescan" alt="container image size">
 </a>
@@ -38,34 +35,43 @@ Only files with the (case insensitive) file extensions `.tcl`, `.irul` and `.iru
 Scanning all iRules in a directory recursively (`$PWD/tests/basic`):
 
 ```shell
-docker run --rm -v "$PWD/tests/basic:/scandir" simonkowallik/irulescan
+docker run --rm -v "$PWD/tests/basic:/scandir" simonkowallik/irulescan | yq -pjson
 ```
 
-```json
-[
-  {
-    "filepath": "dangerous.tcl",
-    "warning": [
-      "Unquoted expr at `1` in `expr 1 + $one`",
-      "Unquoted expr at `+` in `expr 1 + $one`"
-    ],
-    "dangerous": ["Dangerous unquoted expr at `$one` in `expr 1 + $one`"]
-  },
-  {
-    "filepath": "ok.tcl",
-    "warning": [],
-    "dangerous": []
-  },
-  {
-    "filepath": "warning.tcl",
-    "warning": [
-      "Unquoted expr at `1` in `expr 1 + 1`",
-      "Unquoted expr at `+` in `expr 1 + 1`",
-      "Unquoted expr at `1` in `expr 1 + 1`"
-    ],
-    "dangerous": []
-  }
-]
+```yaml
+- filepath: dangerous.tcl
+  warning:
+    - message: unsafe expression, use braces `{ .. }`
+      issue_location: "1"
+      context: expr 1 + $one
+      line: 2
+    - message: unsafe expression, use braces `{ .. }`
+      issue_location: +
+      context: expr 1 + $one
+      line: 2
+  dangerous:
+    - message: dangerous unsafe expression, use braces `{ .. }`
+      issue_location: $one
+      context: expr 1 + $one
+      line: 2
+- filepath: ok.tcl
+  warning: []
+  dangerous: []
+- filepath: warning.tcl
+  warning:
+    - message: unsafe expression, use braces `{ .. }`
+      issue_location: "1"
+      context: expr 1 + 1
+      line: 1
+    - message: unsafe expression, use braces `{ .. }`
+      issue_location: +
+      context: expr 1 + 1
+      line: 1
+    - message: unsafe expression, use braces `{ .. }`
+      issue_location: "1"
+      context: expr 1 + 1
+      line: 1
+  dangerous: []
 ```
 
 If you plan to use irulescan frequently, consider adding a shell function to wrap the container execution and add it in your shell, eg. in your `.bashrc` or similar.
