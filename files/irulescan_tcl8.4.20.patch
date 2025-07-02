@@ -1,0 +1,321 @@
+--- tcl8.4.20.orig/generic/tclCmdMZ.c
++++ tcl8.4.20/generic/tclCmdMZ.c
+@@ -1321,7 +1321,7 @@
+ 		 */
+ 		string1 = (char*) Tcl_GetByteArrayFromObj(objv[0], &length1);
+ 		string2 = (char*) Tcl_GetByteArrayFromObj(objv[1], &length2);
+-		strCmpFn = memcmp;
++		strCmpFn = (int (*)())memcmp;
+ 	    } else if ((objv[0]->typePtr == &tclStringType)
+ 		    && (objv[1]->typePtr == &tclStringType)) {
+ 		/*
+@@ -1332,7 +1332,7 @@
+ 		 */
+ 		string1 = (char*) Tcl_GetUnicodeFromObj(objv[0], &length1);
+ 		string2 = (char*) Tcl_GetUnicodeFromObj(objv[1], &length2);
+-		strCmpFn = nocase ? Tcl_UniCharNcasecmp : Tcl_UniCharNcmp;
++		strCmpFn = (int (*)())(nocase ? Tcl_UniCharNcasecmp : Tcl_UniCharNcmp);
+ 	    } else {
+ 		/*
+ 		 * As a catch-all we will work with UTF-8.  We cannot use
+@@ -1344,11 +1344,11 @@
+ 		string1 = (char*) Tcl_GetStringFromObj(objv[0], &length1);
+ 		string2 = (char*) Tcl_GetStringFromObj(objv[1], &length2);
+ 		if ((reqlength < 0) && !nocase) {
+-		    strCmpFn = TclpUtfNcmp2;
++		    strCmpFn = (int (*)())TclpUtfNcmp2;
+ 		} else {
+ 		    length1 = Tcl_NumUtfChars(string1, length1);
+ 		    length2 = Tcl_NumUtfChars(string2, length2);
+-		    strCmpFn = nocase ? Tcl_UtfNcasecmp : Tcl_UtfNcmp;
++		    strCmpFn = (int (*)())(nocase ? Tcl_UtfNcasecmp : Tcl_UtfNcmp);
+ 		}
+ 	    }
+ 
+@@ -1366,7 +1366,7 @@
+ 		     */
+ 		    reqlength = length + 1;
+ 		}
+-		match = strCmpFn(string1, string2, (unsigned) length);
++		match = ((int (*)(const char *, const char *, size_t))strCmpFn)(string1, string2, (unsigned) length);
+ 		if ((match == 0) && (reqlength > length)) {
+ 		    match = length1 - length2;
+ 		}
+--- tcl8.4.20.orig/generic/tclParseExpr.c
++++ tcl8.4.20/generic/tclParseExpr.c
+@@ -1812,13 +1812,93 @@
+ 	    parsePtr->term = infoPtr->next;
+ 	    return TCL_OK;
+ 
++/*
++ * Adding iRule specific expressions. Most are non-functional.
++ * The goal is to only make them appear legal as the result
++ * of the expression does not matter to irulescan.
++ */
++	case 'o':
++	    if ((src[1] == 'r') && ((infoPtr->lastChar - src) > 1)) {
++		infoPtr->lexeme = OR;
++		infoPtr->size = 2;
++		infoPtr->next = src+2;
++		parsePtr->term = infoPtr->next;
++		return TCL_OK;
++	    } else {
++		goto checkFuncName;
++	    }
++
++	case 'a':
++	    if (
++			(src[1] == 'n') &&
++			(src[2] == 'd') &&
++			((infoPtr->lastChar - src) > 1)
++		) {
++		infoPtr->lexeme = AND;
++		infoPtr->size = 3;
++		infoPtr->next = src+3;
++		parsePtr->term = infoPtr->next;
++		return TCL_OK;
++	    } else {
++		goto checkFuncName;
++	    }
++
+ 	case '~':
+ 	    infoPtr->lexeme = BIT_NOT;
+ 	    return TCL_OK;
+ 
++	case 'c':
++	    if (
++			(src[1] == 'o') &&
++			(src[2] == 'n') &&
++			(src[3] == 't') &&
++			(src[4] == 'a') &&
++			(src[5] == 'i') &&
++			(src[6] == 'n') &&
++			(src[7] == 's') &&
++		 	((infoPtr->lastChar - src) > 1)
++		 ) {
++		infoPtr->lexeme = STREQ;
++		infoPtr->size = 8;
++		infoPtr->next = src+8;
++		parsePtr->term = infoPtr->next;
++		return TCL_OK;
++	    } else {
++		goto checkFuncName;
++	    }
++
+ 	case 'e':
+-	    if ((src[1] == 'q') && ((infoPtr->lastChar - src) > 1)) {
++	    if (
++			(src[1] == 'q') &&
++			(src[2] == 'u') &&
++			(src[3] == 'a') &&
++			(src[4] == 'l') &&
++			(src[5] == 's') &&
++		 	((infoPtr->lastChar - src) > 1)
++		 ) {
+ 		infoPtr->lexeme = STREQ;
++		infoPtr->size = 6;
++		infoPtr->next = src+6;
++		parsePtr->term = infoPtr->next;
++		return TCL_OK;
++	    } else if (
++			(src[1] == 'n') &&
++			(src[2] == 'd') &&
++			(src[3] == 's') &&
++			(src[4] == '_') &&
++			(src[5] == 'w') &&
++			(src[6] == 'i') &&
++			(src[7] == 't') &&
++			(src[8] == 'h') &&
++		 	((infoPtr->lastChar - src) > 1)
++		 ) {
++		infoPtr->lexeme = STREQ;
++		infoPtr->size = 9;
++		infoPtr->next = src+9;
++		parsePtr->term = infoPtr->next;
++		return TCL_OK;
++	    } else if ((src[1] == 'q') && ((infoPtr->lastChar - src) > 1)) {
++		infoPtr->lexeme = STREQ;
+ 		infoPtr->size = 2;
+ 		infoPtr->next = src+2;
+ 		parsePtr->term = infoPtr->next;
+@@ -1827,8 +1907,99 @@
+ 		goto checkFuncName;
+ 	    }
+ 
++	case 's':
++	    if (
++			(src[1] == 't') &&
++			(src[2] == 'a') &&
++			(src[3] == 'r') &&
++			(src[4] == 't') &&
++			(src[5] == 's') &&
++			(src[6] == '_') &&
++			(src[7] == 'w') &&
++			(src[8] == 'i') &&
++			(src[9] == 't') &&
++			(src[10] == 'h') &&
++		 	((infoPtr->lastChar - src) > 1)
++		 ) {
++		infoPtr->lexeme = STREQ;
++		infoPtr->size = 11;
++		infoPtr->next = src+11;
++		parsePtr->term = infoPtr->next;
++		return TCL_OK;
++	    } else {
++		goto checkFuncName;
++	    }
++
++	case 'm':
++	    if (
++			(src[1] == 'a') &&
++			(src[2] == 't') &&
++			(src[3] == 'c') &&
++			(src[4] == 'h') &&
++			(src[5] == 'e') &&
++			(src[6] == 's') &&
++			(src[7] == '_') &&
++			(src[8] == 'g') &&
++			(src[9] == 'l') &&
++			(src[10] == 'o') &&
++			(src[11] == 'b') &&
++		 	((infoPtr->lastChar - src) > 1)
++		 ) {
++		infoPtr->lexeme = STREQ;
++		infoPtr->size = 12;
++		infoPtr->next = src+12;
++		parsePtr->term = infoPtr->next;
++		return TCL_OK;
++		 } else if (
++			(src[1] == 'a') &&
++			(src[2] == 't') &&
++			(src[3] == 'c') &&
++			(src[4] == 'h') &&
++			(src[5] == 'e') &&
++			(src[6] == 's') &&
++			(src[7] == '_') &&
++			(src[8] == 'r') &&
++			(src[9] == 'e') &&
++			(src[10] == 'g') &&
++			(src[11] == 'e') &&
++			(src[12] == 'x') &&
++		 	((infoPtr->lastChar - src) > 1)
++		 ) {
++		infoPtr->lexeme = STREQ;
++		infoPtr->size = 13;
++		infoPtr->next = src+13;
++		parsePtr->term = infoPtr->next;
++		return TCL_OK;
++		 } else if (
++			(src[1] == 'a') &&
++			(src[2] == 't') &&
++			(src[3] == 'c') &&
++			(src[4] == 'h') &&
++			(src[5] == 'e') &&
++			(src[6] == 's') &&
++		 	((infoPtr->lastChar - src) > 1)
++		 ) {
++		infoPtr->lexeme = STREQ;
++		infoPtr->size = 7;
++		infoPtr->next = src+7;
++		parsePtr->term = infoPtr->next;
++		return TCL_OK;
++	    } else {
++		goto checkFuncName;
++	    }
++
+ 	case 'n':
+-	    if ((src[1] == 'e') && ((infoPtr->lastChar - src) > 1)) {
++	    if (
++			(src[1] == 'o') &&
++			(src[2] == 't') &&
++			((infoPtr->lastChar - src) > 1)
++		) {
++	    infoPtr->lexeme = NOT;
++		infoPtr->size = 3;
++		infoPtr->next = src+3;
++		parsePtr->term = infoPtr->next;
++		return TCL_OK;
++	    } else if ((src[1] == 'e') && ((infoPtr->lastChar - src) > 1)) {
+ 		infoPtr->lexeme = STRNEQ;
+ 		infoPtr->size = 2;
+ 		infoPtr->next = src+2;
+--- tcl8.4.20.orig/generic/tclScan.c
++++ tcl8.4.20/generic/tclScan.c
+@@ -1030,7 +1030,7 @@
+ 			}
+ 		    } else {
+ #endif /* !TCL_WIDE_INT_IS_LONG */
+-			value = (long) (*fn)(buf, NULL, base);
++			value = (long) ((long (*)(const char *, char **, int))(*fn))(buf, NULL, base);
+ 			if ((flags & SCAN_UNSIGNED) && (value < 0)) {
+ 			    sprintf(buf, "%lu", value); /* INTL: ISO digit */
+ 			    objPtr = Tcl_NewStringObj(buf, -1);
+--- tcl8.4.20.orig/unix/configure
++++ tcl8.4.20/unix/configure
+@@ -777,7 +777,7 @@
+ #line 778 "configure"
+ #include "confdefs.h"
+ 
+-main(){return(0);}
++int main(){return(0);}
+ EOF
+ if { (eval echo configure:783: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+   ac_cv_prog_cc_works=yes
+@@ -3187,7 +3187,7 @@
+ 		SHLIB_LD='${CC} -shared ${CFLAGS} ${LDFLAGS}'
+ 		DL_OBJS="tclLoadDl.o"
+ 		DL_LIBS="-ldl"
+-		LDFLAGS="$LDFLAGS -Wl,--export-dynamic"
++		LDFLAGS="$LDFLAGS -Wl,-soname,libtcl-irulescan.so,--export-dynamic"
+ 		if test $doRpath = yes ; then
+ 		    CC_SEARCH_FLAGS='-Wl,-rpath,${LIB_RUNTIME_DIR}'
+ 		fi
+@@ -7468,14 +7468,7 @@
+     LIBOBJS="$LIBOBJS strtod.o"
+ fi
+ 
+-#--------------------------------------------------------------------
+-#	Under Solaris 2.4, strtod returns the wrong value for the
+-#	terminating character under some conditions.  Check for this
+-#	and if the problem exists use a substitute procedure
+-#	"fixstrtod" that corrects the error.
+-#--------------------------------------------------------------------
+ 
+-
+     echo $ac_n "checking for strtod""... $ac_c" 1>&6
+ echo "configure:7481: checking for strtod" >&5
+ if eval "test \"`echo '$''{'ac_cv_func_strtod'+set}'`\" = set"; then
+@@ -7573,14 +7566,6 @@
+ 
+ fi
+ 
+-echo "$ac_t""$tcl_cv_strtod_buggy" 1>&6
+-	if test "$tcl_cv_strtod_buggy" = buggy; then
+-	    LIBOBJS="$LIBOBJS fixstrtod.o"
+-	    cat >> confdefs.h <<\EOF
+-#define strtod fixstrtod
+-EOF
+-
+-	fi
+     fi
+ 
+ 
+--- tcl8.4.20.orig/unix/tclUnixPort.h
++++ tcl8.4.20/unix/tclUnixPort.h
+@@ -523,16 +523,6 @@
+ #endif
+ 
+ /*
+- * At present (12/91) not all stdlib.h implementations declare strtod.
+- * The declaration below is here to ensure that it's declared, so that
+- * the compiler won't take the default approach of assuming it returns
+- * an int.  There's no ANSI prototype for it because there would end
+- * up being too many conflicts with slightly-different prototypes.
+- */
+-
+-extern double strtod();
+-
+-/*
+  * There is no platform-specific panic routine for Unix in the Tcl internals.
+  */
+ 

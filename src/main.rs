@@ -1,60 +1,42 @@
 use irulescan::rstcl;
-use irulescan::CheckResult;
-use serde_json::Value;
 use std::fs;
 use std::io;
 use std::io::prelude::*;
+use std::net::SocketAddr;
 use std::path::Path;
 use std::path::PathBuf;
-use serde_json::json;
+use serde_json::Value;
 use json_diff_ng::compare_serde_values;
 
 use clap::{Parser, Subcommand};
+use walkdir::WalkDir;
 
-static IRULE_FILE_EXTENSIONS: [&str; 3] = [".irule", ".irul", ".tcl"];
+use irulescan::scan_and_format_results;
 
-fn results_to_json(complex_results: Vec<(String, Vec<CheckResult>)>, exclude_empty_findings: bool) -> serde_json::Value {
-    let mut result_list = Vec::new();
+mod apiserver;
+mod mcpserver;
 
-    for (path, check_results) in complex_results.iter() {
-        let mut warning = Vec::new();
-        let mut dangerous = Vec::new();
-
-        if check_results.len() > 0 {
-            for check_result in check_results.iter() {
-                match check_result {
-                    &CheckResult::Warn(ref ctx, ref msg, ref line) => {
-                        let _ = warning.push(format!(
-                            "{} at `{}` in `{}`",
-                            msg,
-                            line,
-                            ctx.replace("\n", "")
-                        ));
-                    }
-                    &CheckResult::Danger(ref ctx, ref msg, ref line) => {
-                        let _ = dangerous.push(format!(
-                            "{} at `{}` in `{}`",
-                            msg,
-                            line,
-                            ctx.replace("\n", "")
-                        ));
-                    }
-                }
+static IRULE_FILE_EXTENSIONS: once_cell::sync::Lazy<Vec<String>> = once_cell::sync::Lazy::new(|| {
+    match std::env::var("IRULESCAN_FILE_EXTENSIONS") {
+        Ok(env_val) => {
+            let extensions: Vec<String> = env_val
+                .split(',')
+                .map(|s| s.trim().to_string().to_lowercase())
+                .filter(|s| !s.is_empty()) // avoid empty strings if input is like ".foo,,.bar"
+                .collect();
+            if extensions.is_empty() {
+                // defaults if IRULESCAN_FILE_EXTENSIONS is set but results in an empty list (e.g., "" or ", ,")
+                vec![".irule".to_string(), ".irul".to_string(), ".tcl".to_string()]
+            } else {
+                extensions
             }
-        };
-        if exclude_empty_findings && warning.len() == 0 && dangerous.len() == 0 {
-            continue;
         }
-        let json_entries = json!({
-            "filepath": path,
-            "warning": warning,
-            "dangerous": dangerous
-        });
-        let _ = result_list.push(json_entries);
+        Err(_) => {
+            // default values
+            vec![".irule".to_string(), ".irul".to_string(), ".tcl".to_string()]
+        }
     }
-
-    return serde_json::json!(result_list);
-}
+});
 
 fn read_file(path: &Path) -> String {
     let path_display = path.display();
@@ -84,17 +66,17 @@ fn read_stdin() -> String {
     }
     stdin_content
 }
+// --- Main Function ---
 
 #[derive(Parser)]
 #[command(name = "irulescan")]
-#[command(version = "2.0.0")]
+#[command(version = "3.0.0")]
 #[command(author = "Simon Kowallik <github@simonkowallik.com>")]
 #[command(about = "irulescan - security analyzer for iRules")]
 #[command(
     long_about = "irulescan is a tool to scan iRules for unexpected/unsafe expressions that may have undesirable effects like double substitution.\nhome: https://github.com/simonkowallik/irulescan"
 )]
 #[command(propagate_version = true)]
-
 struct Cli {
     /// Subcommands
     #[command(subcommand)]
@@ -103,7 +85,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Scan all iRules in a directory (recursively) or the specified file.
+    /// Scan all iRules in a directory (recursively) or the specified file or - for stdin.
     #[command(arg_required_else_help = true, long_about = "Scan all iRules in a directory (recursively) or the specified file. Processes iRules with non-case sensitive file extensions: .irule, .irul, .tcl and outputs JSON array of objects (results).")]
     Check {
         /// Suppress findings of type "warning"
@@ -119,7 +101,7 @@ enum Commands {
         #[arg(short, long, value_name = "REFERENCE_FILEPATH")]
         reference: Option<PathBuf>,
 
-        /// Scan iRules in this directory (recursively) or the specified iRule file, use - to scan STDIN.
+        /// Scan iRules in this directory (recursively) or the specified iRule file
         #[arg(required = true, value_name = "FILEPATH")]
         dirpath: PathBuf,
     },
@@ -142,13 +124,31 @@ enum Commands {
         #[arg(required = true)]
         script_str: String,
     },
+
+    /// Run MCP server (HTTP stream transport)
+    Mcpserver {
+        /// explicitly set listening addr:port (eg. 0.0.0.0:8888)
+        #[arg(long, default_value_t = SocketAddr::from(([127, 0, 0, 1], 8000)))]
+        listen: SocketAddr,
+
+        /// Include iRule security good practices in scan results to provide additional context to the LLM.
+        #[arg(long, default_value_t = false)]
+        include_additional_context: bool,
+    },
+    /// Run HTTP API server (OpenAPI v3)
+    Apiserver {
+        /// explicitly set listening addr:port (eg. 0.0.0.0:8888)
+        #[arg(long, default_value_t = SocketAddr::from(([127, 0, 0, 1], 8000)))]
+        listen: SocketAddr,
+    },
 }
 
-fn main() {
+// --- Main Function ---
+#[tokio::main]
+async fn main() {
     let args = Cli::parse();
-    let _command = args.command;
 
-    match _command {
+    match args.command {
         Commands::Check { no_warn, exclude_empty_findings, reference, dirpath } => {
             let mut script_ins: Vec<(String, String)> = Vec::new();
             
@@ -167,14 +167,14 @@ fn main() {
                 ));
             } else if dirpath.is_dir() {
                 // If dirpath is a directory, read all files that match IRULE_FILE_EXTENSIONS
-                for entry in walkdir::WalkDir::new(&dirpath)
+                for entry in WalkDir::new(&dirpath)
                     .into_iter()
                     .filter_map(|e| e.ok())
                 {
                     let _path = entry.path();
                     if IRULE_FILE_EXTENSIONS
                         .iter()
-                        .any(|&x| _path.to_str().unwrap().to_lowercase().ends_with(x))
+                        .any(|x| _path.to_str().unwrap().to_lowercase().ends_with(x))
                         && _path.is_file()
                     {
                         script_ins.push((
@@ -194,24 +194,8 @@ fn main() {
                 preprocessed_scripts.push((_path.to_string(), script));
             }
 
-            let mut complex_results: Vec<(String, Vec<CheckResult>)> = Vec::new();
-            for (_path, script) in preprocessed_scripts.iter() {
-                let mut res = irulescan::scan_script(&script);
-
-                // filter out warnings if --no-warn flag is set
-                if no_warn {
-                    res = res
-                        .into_iter()
-                        .filter(|r| match r {
-                            &CheckResult::Warn(_, _, _) => false,
-                            _ => true,
-                        })
-                        .collect();
-                }
-                complex_results.push((_path.to_string(), res));
-            }
-
-            let mut scan_results = results_to_json(complex_results, exclude_empty_findings);
+            // Call the new combined function
+            let mut scan_results = scan_and_format_results(&preprocessed_scripts, no_warn, exclude_empty_findings);
 
             // for STDIN only output the result object without the filepath
             if is_stdin {
@@ -248,8 +232,10 @@ fn main() {
             } else {
                 println!("{}", scan_results.to_string());
             }
+            // --- End of Check command logic ---\\
         }
         Commands::Checkref { no_warn, filepath } => {
+            // --- Existing Checkref command logic --- \
             let take_stdin = filepath.to_str().unwrap() == "-";
 
             let reference_in = match take_stdin {
@@ -265,7 +251,6 @@ fn main() {
             };
 
             let mut script_ins: Vec<(String, String)> = Vec::new();
-            // example: reference_results = [{"filepath": "file1"}, {"filepath": "file2"}, {"filepath": "file3"}]
             for entry in reference_results.as_array().unwrap().iter() {
                 let _path = entry.get("filepath").unwrap().as_str().unwrap();
                 let _path = Path::new(_path);
@@ -283,24 +268,7 @@ fn main() {
                 preprocessed_scripts.push((_path.to_string(), script));
             }
 
-            let mut complex_results: Vec<(String, Vec<CheckResult>)> = Vec::new();
-            for (_path, script) in preprocessed_scripts.iter() {
-                let mut res = irulescan::scan_script(&script);
-
-                // filter out warnings if --no-warn flag is set
-                if no_warn {
-                    res = res
-                        .into_iter()
-                        .filter(|r| match r {
-                            &CheckResult::Warn(_, _, _) => false,
-                            _ => true,
-                        })
-                        .collect();
-                }
-                complex_results.push((_path.to_string(), res));
-            }
-
-            let scan_results = results_to_json(complex_results, false);
+            let scan_results = scan_and_format_results(&preprocessed_scripts, no_warn, false);
 
             let diffs = compare_serde_values(&reference_results, &scan_results, true, &[]).unwrap();
 
@@ -320,6 +288,7 @@ fn main() {
             }
         }
         Commands::Parsestr { script_str } => {
+            // --- Existing Parsestr command logic --- \
             let take_stdin = script_str == "-";
             let script_in = match take_stdin {
                 true => read_stdin(),
@@ -327,6 +296,74 @@ fn main() {
             };
             let script = &irulescan::preprocess_script(&script_in);
             println!("{:?}", rstcl::parse_script(script));
+        }
+
+        Commands::Mcpserver { listen, include_additional_context } => {
+            let clap_default_addr = SocketAddr::from(([127, 0, 0, 1], 8000));
+            let final_listen_addr: SocketAddr;
+
+            if listen != clap_default_addr {
+                final_listen_addr = listen;
+            } else {
+                match std::env::var("IRULESCAN_LISTEN") {
+                    Ok(env_listen_str) => {
+                        match env_listen_str.parse::<SocketAddr>() {
+                            Ok(parsed_addr) => {
+                                final_listen_addr = parsed_addr;
+                            }
+                            Err(_) => {
+                                eprintln!("Warning: IRULESCAN_LISTEN environment variable ('{}') is not a valid SocketAddr. Using default address {}.", env_listen_str, clap_default_addr);
+                                // Fallback to clap default if env var is malformed
+                                final_listen_addr = clap_default_addr;
+                            }
+                        }
+                    }
+                    Err(std::env::VarError::NotPresent) => {
+                        // 3. Environment variable not set, use clap default
+                        // (which is already in listen if it matched clap_default_addr)
+                        final_listen_addr = listen;
+                    }
+                    Err(std::env::VarError::NotUnicode(_os_str)) => {
+                        eprintln!("Warning: IRULESCAN_LISTEN environment variable contains non-Unicode data. Using default address {}.", clap_default_addr);
+                        // Fallback to clap default if env var is not unicode
+                        final_listen_addr = clap_default_addr;
+                    }
+                }
+            }
+            if let Err(e) = mcpserver::run_mcpserver(final_listen_addr, include_additional_context).await {
+                eprintln!("Failed to start irulescan MCP server: {}", e);
+                std::process::exit(1);
+            }
+        }
+        Commands::Apiserver { listen } => {
+            let clap_default_addr = SocketAddr::from(([127, 0, 0, 1], 8000));
+            let final_listen_addr: SocketAddr;
+
+            if listen != clap_default_addr {
+                final_listen_addr = listen;
+            } else {
+                match std::env::var("IRULESCAN_LISTEN") {
+                    Ok(env_listen_str) => {
+                        match env_listen_str.parse::<SocketAddr>() {
+                            Ok(parsed_addr) => {
+                                final_listen_addr = parsed_addr;
+                            }
+                            Err(_) => {
+                                eprintln!("Warning: IRULESCAN_LISTEN environment variable ('{}') is not a valid SocketAddr. Using default address {}.", env_listen_str, clap_default_addr);
+                                final_listen_addr = clap_default_addr;
+                            }
+                        }
+                    }
+                    Err(std::env::VarError::NotPresent) => {
+                        final_listen_addr = listen;
+                    }
+                    Err(std::env::VarError::NotUnicode(_os_str)) => {
+                        eprintln!("Warning: IRULESCAN_LISTEN environment variable contains non-Unicode data. Using default address {}.", clap_default_addr);
+                        final_listen_addr = clap_default_addr;
+                    }
+                }
+            }
+            apiserver::run_apiserver(final_listen_addr).await;
         }
     }
 }

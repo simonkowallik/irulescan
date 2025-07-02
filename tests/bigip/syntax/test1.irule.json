@@ -2,11 +2,26 @@
   {
     "filepath": "test1.irule",
     "warning": [
-      "Unquoted expr at `+` in `expr $n + 30`",
-      "Unquoted expr at `30` in `expr $n + 30`"
+      {
+        "message": "unsafe expression, use braces `{ .. }`",
+        "issue_location": "+",
+        "context": "expr $n + 30",
+        "line": 5
+      },
+      {
+        "message": "unsafe expression, use braces `{ .. }`",
+        "issue_location": "30",
+        "context": "expr $n + 30",
+        "line": 5
+      }
     ],
     "dangerous": [
-      "Dangerous unquoted expr at `$n` in `expr $n + 30`"
+      {
+        "message": "dangerous unsafe expression, use braces `{ .. }`",
+        "issue_location": "$n",
+        "context": "expr $n + 30",
+        "line": 5
+      }
     ]
   }
 ]

@@ -1,4 +1,5 @@
 when HTTP_REQUST {
+    # typo
     expr 1
 }
 when HTTP_REQUST priority 2 {

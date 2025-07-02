@@ -2,52 +2,282 @@
   {
     "filepath": "unsupported.irule",
     "warning": [
-      "Use of unsupported command: at `auto_execok` in `auto_execok`",
-      "Use of unsupported command: at `auto_import` in `auto_import`",
-      "Use of unsupported command: at `auto_load` in `auto_load`",
-      "Use of unsupported command: at `auto_mkindex` in `auto_mkindex`",
-      "Use of unsupported command: at `auto_mkindex_old` in `auto_mkindex_old`",
-      "Use of unsupported command: at `auto_qualify` in `auto_qualify`",
-      "Use of unsupported command: at `auto_reset` in `auto_reset`",
-      "Use of unsupported command: at `bgerror` in `bgerror`",
-      "Use of unsupported command: at `cd` in `cd`",
-      "Use of unsupported command: at `dict` in `dict`",
-      "Use of unsupported command: at `encoding` in `encoding`",
-      "Use of unsupported command: at `eof` in `eof`",
-      "Use of unsupported command: at `exec` in `exec`",
-      "Use of unsupported command: at `exit` in `exit`",
-      "Use of unsupported command: at `fblocked` in `fblocked`",
-      "Use of unsupported command: at `fconfigure` in `fconfigure`",
-      "Use of unsupported command: at `fcopy` in `fcopy`",
-      "Use of unsupported command: at `file` in `file`",
-      "Use of unsupported command: at `fileevent` in `fileevent`",
-      "Use of unsupported command: at `filename` in `filename`",
-      "Use of unsupported command: at `flush` in `flush`",
-      "Use of unsupported command: at `gets` in `gets`",
-      "Use of unsupported command: at `glob` in `glob`",
-      "Use of unsupported command: at `http` in `http`",
-      "Use of unsupported command: at `interp` in `interp`",
-      "Use of unsupported command: at `load` in `load`",
-      "Use of unsupported command: at `lrepeat` in `lrepeat`",
-      "Use of unsupported command: at `lreverse` in `lreverse`",
-      "Use of unsupported command: at `memory` in `memory`",
-      "Use of unsupported command: at `namespace` in `namespace`",
-      "Use of unsupported command: at `open` in `open`",
-      "Use of unsupported command: at `package` in `package`",
-      "Use of unsupported command: at `pid` in `pid`",
-      "Use of unsupported command: at `pkg_mkIndex` in `pkg_mkIndex`",
-      "Use of unsupported command: at `pkg::create` in `pkg::create`",
-      "Use of unsupported command: at `pwd` in `pwd`",
-      "Use of unsupported command: at `rename` in `rename`",
-      "Use of unsupported command: at `seek` in `seek`",
-      "Use of unsupported command: at `socket` in `socket`",
-      "Use of unsupported command: at `source` in `source`",
-      "Use of unsupported command: at `tcl_findLibrary` in `tcl_findLibrary`",
-      "Use of unsupported command: at `tell` in `tell`",
-      "Use of unsupported command: at `time` in `time`",
-      "Use of unsupported command: at `trace` in `trace`",
-      "Use of unsupported command: at `unknown` in `unknown`",
-      "Use of unsupported command: at `update` in `update`"
+      {
+        "message": "command is unsupported",
+        "issue_location": "auto_execok",
+        "context": "auto_execok",
+        "line": 1
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "auto_import",
+        "context": "auto_import",
+        "line": 2
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "auto_load",
+        "context": "auto_load",
+        "line": 3
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "auto_mkindex",
+        "context": "auto_mkindex",
+        "line": 4
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "auto_mkindex_old",
+        "context": "auto_mkindex_old",
+        "line": 5
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "auto_qualify",
+        "context": "auto_qualify",
+        "line": 6
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "auto_reset",
+        "context": "auto_reset",
+        "line": 7
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "bgerror",
+        "context": "bgerror",
+        "line": 8
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "cd",
+        "context": "cd",
+        "line": 9
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "dict",
+        "context": "dict",
+        "line": 10
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "encoding",
+        "context": "encoding",
+        "line": 11
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "eof",
+        "context": "eof",
+        "line": 12
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "exec",
+        "context": "exec",
+        "line": 13
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "exit",
+        "context": "exit",
+        "line": 14
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "fblocked",
+        "context": "fblocked",
+        "line": 15
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "fconfigure",
+        "context": "fconfigure",
+        "line": 16
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "fcopy",
+        "context": "fcopy",
+        "line": 17
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "file",
+        "context": "file",
+        "line": 18
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "fileevent",
+        "context": "fileevent",
+        "line": 19
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "filename",
+        "context": "filename",
+        "line": 20
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "flush",
+        "context": "flush",
+        "line": 21
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "gets",
+        "context": "gets",
+        "line": 22
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "glob",
+        "context": "glob",
+        "line": 23
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "http",
+        "context": "http",
+        "line": 24
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "interp",
+        "context": "interp",
+        "line": 25
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "load",
+        "context": "load",
+        "line": 26
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "lrepeat",
+        "context": "lrepeat",
+        "line": 27
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "lreverse",
+        "context": "lreverse",
+        "line": 28
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "memory",
+        "context": "memory",
+        "line": 29
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "namespace",
+        "context": "namespace",
+        "line": 30
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "open",
+        "context": "open",
+        "line": 31
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "package",
+        "context": "package",
+        "line": 32
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "pid",
+        "context": "pid",
+        "line": 33
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "pkg_mkIndex",
+        "context": "pkg_mkIndex",
+        "line": 34
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "pkg::create",
+        "context": "pkg::create",
+        "line": 35
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "pwd",
+        "context": "pwd",
+        "line": 36
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "rename",
+        "context": "rename",
+        "line": 37
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "seek",
+        "context": "seek",
+        "line": 38
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "socket",
+        "context": "socket",
+        "line": 39
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "source",
+        "context": "source",
+        "line": 40
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "tcl_findLibrary",
+        "context": "tcl_findLibrary",
+        "line": 41
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "tell",
+        "context": "tell",
+        "line": 42
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "time",
+        "context": "time",
+        "line": 43
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "trace",
+        "context": "trace",
+        "line": 44
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "unknown",
+        "context": "unknown",
+        "line": 45
+      },
+      {
+        "message": "command is unsupported",
+        "issue_location": "update",
+        "context": "update",
+        "line": 46
+      }
     ],
     "dangerous": []
   }
