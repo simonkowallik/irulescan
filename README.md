@@ -13,7 +13,7 @@
     <img src="https://img.shields.io/github/actions/workflow/status/simonkowallik/irulescan/test.yaml" alt="build">
 </a>
 <a href="https://hub.docker.com/r/simonkowallik/irulescan">
-    <img src="https://img.shields.io/docker/image-size/simonkowallik/irulescan" alt="container image size">
+    <img src="https://img.shields.io/docker/image-size/simonkowallik/irulescan/latest" alt="container image size">
 </a>
 <a href="https://github.com/simonkowallik/irulescan/releases">
     <img src="https://img.shields.io/github/v/release/simonkowallik/irulescan" alt="releases">
