@@ -15,22 +15,22 @@ jobs:
     strategy:
       matrix:
         containers:
-          - image: docker.io/irulescan:latest
+          - image: docker.io/simonkowallik/irulescan:latest
             tag: latest
             registry: docker.io
-          - image: docker.io/irulescan:mcpserver
+          - image: docker.io/simonkowallik/irulescan:mcpserver
             tag: mcpserver
             registry: docker.io
-          - image: docker.io/irulescan:apiserver
+          - image: docker.io/simonkowallik/irulescan:apiserver
             tag: apiserver
             registry: docker.io
-          - image: ghcr.io/irulescan:latest
+          - image: ghcr.io/simonkowallik/irulescan:latest
             tag: latest
             registry: ghcr.io
-          - image: ghcr.io/irulescan:mcpserver
+          - image: ghcr.io/simonkowallik/irulescan:mcpserver
             tag: mcpserver
             registry: ghcr.io
-          - image: ghcr.io/irulescan:apiserver
+          - image: ghcr.io/simonkowallik/irulescan:apiserver
             tag: apiserver
             registry: ghcr.io
     runs-on: ubuntu-latest
