@@ -1,0 +1,86 @@
+name: Test Build
+
+on:
+  workflow_dispatch:
+  release:
+    types: [released]
+  push:
+    branches:
+      - "main"
+  repository_dispatch:
+    types: [start-scheduled-test]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        containers:
+          - image: docker.io/irulescan:latest
+            tag: latest
+            registry: docker.io
+          - image: docker.io/irulescan:mcpserver
+            tag: mcpserver
+            registry: docker.io
+          - image: docker.io/irulescan:apiserver
+            tag: apiserver
+            registry: docker.io
+          - image: ghcr.io/irulescan:latest
+            tag: latest
+            registry: ghcr.io
+          - image: ghcr.io/irulescan:mcpserver
+            tag: mcpserver
+            registry: ghcr.io
+          - image: ghcr.io/irulescan:apiserver
+            tag: apiserver
+            registry: ghcr.io
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+
+      - name: Install jd
+        run: |
+          go install github.com/josephburnett/jd@v1.9.1
+          echo "$HOME/go/bin" >> $GITHUB_PATH
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Run container test on single file
+        if: ${{ matrix.containers.tag == 'latest' }}
+        run: |
+          cat tests/basic/dangerous.tcl | docker run --rm -i -v "$PWD/tests:/scandir/tests" \
+              ${{ matrix.containers.image }} check -r 'tests/basic/dangerous.tcl.stdin.json' -
+
+      - name: Run container tests on directory
+        if: ${{ matrix.containers.tag == 'latest' }}
+        run: |
+          docker run --rm -v ${PWD}/tests/basic:/scandir \
+            ${{ matrix.containers.image }} > output.json
+          jd -mset output.json tests/basic/irulescan.json || exit 1
+
+      - name: Start apiserver in background
+        if: ${{ matrix.containers.image == 'apiserver' }}
+        run: |
+          docker run --rm -p 8000:8000 -d \
+            ${{ matrix.containers.image }}
+          sleep 10
+
+      - name: Run apiserver scanfiles test
+        if: ${{ matrix.containers.image == 'apiserver' }}
+        run: |
+          curl -s http://localhost:8000/scanfiles/ \
+          -F 'file=@tests/basic/ok.tcl' \
+          -F 'file=@tests/basic/warning.tcl' \
+          -F 'file=@tests/basic/dangerous.tcl' > output.json
+          jd -mset output.json tests/basic/irulescan.json || exit 1
+
+      - name: Run apiserver scan test
+        if: ${{ matrix.containers.image == 'apiserver' }}
+        run: |
+          curl -s http://localhost:8000/scan/ \
+          --data-binary '@tests/basic/dangerous.tcl' > output.json
+          jd -mset output.json tests/basic/dangerous.tcl.stdin.json || exit 1
