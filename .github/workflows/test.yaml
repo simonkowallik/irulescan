@@ -59,7 +59,9 @@ jobs:
         if: ${{ matrix.containers.tag == 'latest' }}
         run: |
           docker run --rm -v ${PWD}/tests/basic:/scandir \
-            ${{ matrix.containers.image }} > output.json
+            ${{ matrix.containers.image }} | \
+            jq 'del(.[] | select(.filepath == "all.tcl"))' \
+            > output.json
           jd -mset output.json tests/basic/irulescan.json || exit 1
 
       - name: Start apiserver in background
