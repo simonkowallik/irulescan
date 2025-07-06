@@ -38,49 +38,42 @@ Only files with the (case insensitive) file extensions `.tcl`, `.irul` and `.iru
 Scanning all iRules in a directory recursively (`$PWD/tests/basic`):
 
 ```shell
-docker run --rm -v "$PWD/tests/basic:/scandir" simonkowallik/irulescan | yq -pjson
+docker run --rm -v "$PWD/tests/basic:/scandir" simonkowallik/irulescan
 ```
 
-```yaml
-- filepath: dangerous.tcl
-  warning:
-    - message: unsafe expression, use braces `{ .. }`
-      issue_location: "1"
-      context: expr 1 + $one
-      line: 2
-    - message: unsafe expression, use braces `{ .. }`
-      issue_location: +
-      context: expr 1 + $one
-      line: 2
-  dangerous:
-    - message: dangerous unsafe expression, use braces `{ .. }`
-      issue_location: $one
-      context: expr 1 + $one
-      line: 2
-- filepath: ok.tcl
-  warning: []
-  dangerous: []
-- filepath: warning.tcl
-  warning:
-    - message: unsafe expression, use braces `{ .. }`
-      issue_location: "1"
-      context: expr 1 + 1
-      line: 1
-    - message: unsafe expression, use braces `{ .. }`
-      issue_location: +
-      context: expr 1 + 1
-      line: 1
-    - message: unsafe expression, use braces `{ .. }`
-      issue_location: "1"
-      context: expr 1 + 1
-      line: 1
-  dangerous: []
+```json
+[
+  {
+    "filepath": "dangerous.tcl",
+    "warning": [
+      "Unquoted expr at `1` in `expr 1 + $one`",
+      "Unquoted expr at `+` in `expr 1 + $one`"
+    ],
+    "dangerous": ["Dangerous unquoted expr at `$one` in `expr 1 + $one`"]
+  },
+  {
+    "filepath": "ok.tcl",
+    "warning": [],
+    "dangerous": []
+  },
+  {
+    "filepath": "warning.tcl",
+    "warning": [
+      "Unquoted expr at `1` in `expr 1 + 1`",
+      "Unquoted expr at `+` in `expr 1 + 1`",
+      "Unquoted expr at `1` in `expr 1 + 1`"
+    ],
+    "dangerous": []
+  }
+]
 ```
 
 If you plan to use irulescan frequently, consider adding a shell function to wrap the container execution and add it in your shell, eg. in your `.bashrc` or similar.
 
 ```shell
-irulescan(){ docker run --rm -iv "$PWD:$PWD" -w "$PWD" simonkowallik/irulescan:latest "${@:--help}"; }
+irulescan(){
+  docker run --rm -iv "$PWD:$PWD" -w "$PWD" simonkowallik/irulescan:latest "${@:--help}";
+}
 # invoke ephemeral (--rm) container interactively (-i)
 # bind mount (-v) PWD to the same path and use it as workdir (-w)
 # pass any parameters, if none/empty, pass "help" ("${@:--help}")
@@ -147,18 +140,19 @@ irulescan --help
 ```
 
 ```bash
-irulescan is a tool to scan iRules for unexpected/unsafe expressions that may have undesirable effects like double substitution.
+irulescan is a tool to scan iRules for unexpected/unsafe expressions that may have
+undesirable effects like double substitution.
 home: https://github.com/simonkowallik/irulescan
 
 Usage: irulescan <COMMAND>
 
 Commands:
-  check      Scan all iRules in a directory (recursively) or the specified file or - for stdin
-  checkref   Scan all iRules in reference file (JSON) and compare to reference
-  parsestr   Parse given string or stdin
-  mcpserver  Run MCP server (HTTP stream transport)
-  apiserver  Run HTTP API server (OpenAPI v3)
-  help       Print this message or the help of the given subcommand(s)
+ check     Scan all iRules in a directory recursively or the specified file or - for stdin
+ checkref  Scan all iRules in reference file (JSON) and compare to reference
+ parsestr  Parse given string or stdin
+ mcpserver Run MCP server (HTTP stream transport)
+ apiserver Run HTTP API server (OpenAPI v3)
+ help      Print this message or the help of the given subcommand(s)
 
 Options:
   -h, --help
