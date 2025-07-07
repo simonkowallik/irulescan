@@ -1,4 +1,4 @@
-name: Test Build
+name: irulescan tests
 
 on:
   workflow_dispatch:
@@ -86,3 +86,21 @@ jobs:
           curl -s http://localhost:8000/scan/ \
           --data-binary '@tests/basic/dangerous.tcl' > output.json
           jd -mset output.json tests/basic/dangerous.tcl.stdin.json || exit 1
+
+      - name: Start mcpserver in background
+        if: ${{ matrix.containers.image == 'mcpserver' }}
+        run: |
+          docker run --rm -p 8000:8000 -d \
+            ${{ matrix.containers.image }}
+          sleep 10
+
+      - name: Check mcpserver
+        if: ${{ matrix.containers.image == 'mcpserver' }}
+        run: |
+          curl -s http://localhost:8000/ \
+            -X POST \
+            -H "Accept: text/event-stream, application/json" \
+            -H "Content-Type: application/json" \
+            -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{"roots":{"listChanged":true},"sampling":{},"elicitation":{}},"clientInfo":{"name":"curl-client-test","version":"0.0.0-curl-client"}}}' \
+            -o /dev/null \
+            -w "%{http_code}\n" | grep -q 200

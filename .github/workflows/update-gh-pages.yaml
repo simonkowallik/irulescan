@@ -1,0 +1,39 @@
+name: Update gh-pages README
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'README.md'
+  workflow_dispatch:
+
+jobs:
+  update-gh-pages-readme:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout main branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Update existing gh-pages branch
+        if: steps.check-branch.outputs.exists == 'true'
+        run: |
+          git checkout gh-pages
+          cp README.md .
+          git add README.md
+          if git diff --staged --quiet; then
+            echo "No changes to README.md"
+          else
+            git commit -m "Update README.md from main branch"
+            git push origin gh-pages
+          fi
