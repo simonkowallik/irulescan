@@ -10,7 +10,7 @@
 
 <p align="center">
 <a href="https://github.com/simonkowallik/irulescan/actions/workflows/test.yaml">
-    <img src="https://img.shields.io/github/actions/workflow/status/simonkowallik/irulescan/test.yaml" alt="build">
+    <img src="https://img.shields.io/github/actions/workflow/status/simonkowallik/irulescan/test.yaml" alt="tests">
 </a>
 <a href="https://hub.docker.com/r/simonkowallik/irulescan">
     <img src="https://img.shields.io/docker/image-size/simonkowallik/irulescan/latest" alt="container image size">
@@ -170,6 +170,9 @@ Start the API server:
 
 ```shell
 docker run -t --rm -p 8000:8000 simonkowallik/irulescan:apiserver
+
+# equivalent using the :latest container:
+docker run -t --rm -p 8000:8000 simonkowallik/irulescan:latest apiserver --listen 0.0.0.0:8000
 ```
 
 Scanning a single file / iRule code:
@@ -240,6 +243,9 @@ Start the MCP server:
 
 ```bash
 docker run -t --rm -p 8000:8000 simonkowallik/irulescan:mcpserver
+
+# equivalent using the :latest container:
+docker run -t --rm -p 8000:8000 simonkowallik/irulescan:latest mcpserver --listen 0.0.0.0:8000
 ```
 
 With VSCode and Copilot, follow [Use MCP servers in VS Code (Preview)](https://code.visualstudio.com/docs/copilot/chat/mcp-servers#_enable-mcp-support-in-vs-code).
