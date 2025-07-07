@@ -26,10 +26,11 @@ jobs:
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
 
       - name: Update existing gh-pages branch
-        if: steps.check-branch.outputs.exists == 'true'
         run: |
+          mkdir gh-pages
+          cd gh-pages
           git checkout gh-pages
-          cp README.md .
+          cp ../README.md .
           git add README.md
           if git diff --staged --quiet; then
             echo "No changes to README.md"

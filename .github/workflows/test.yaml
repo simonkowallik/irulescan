@@ -65,14 +65,14 @@ jobs:
           jd -mset output.json tests/basic/irulescan.json || exit 1
 
       - name: Start apiserver in background
-        if: ${{ matrix.containers.image == 'apiserver' }}
+        if: ${{ matrix.containers.tag == 'apiserver' }}
         run: |
           docker run --rm -p 8000:8000 -d \
             ${{ matrix.containers.image }}
           sleep 10
 
       - name: Run apiserver scanfiles test
-        if: ${{ matrix.containers.image == 'apiserver' }}
+        if: ${{ matrix.containers.tag == 'apiserver' }}
         run: |
           curl -s http://localhost:8000/scanfiles/ \
           -F 'file=@tests/basic/ok.tcl' \
@@ -81,21 +81,21 @@ jobs:
           jd -mset output.json tests/basic/irulescan.json || exit 1
 
       - name: Run apiserver scan test
-        if: ${{ matrix.containers.image == 'apiserver' }}
+        if: ${{ matrix.containers.tag == 'apiserver' }}
         run: |
           curl -s http://localhost:8000/scan/ \
           --data-binary '@tests/basic/dangerous.tcl' > output.json
           jd -mset output.json tests/basic/dangerous.tcl.stdin.json || exit 1
 
       - name: Start mcpserver in background
-        if: ${{ matrix.containers.image == 'mcpserver' }}
+        if: ${{ matrix.containers.tag == 'mcpserver' }}
         run: |
           docker run --rm -p 8000:8000 -d \
             ${{ matrix.containers.image }}
           sleep 10
 
       - name: Check mcpserver
-        if: ${{ matrix.containers.image == 'mcpserver' }}
+        if: ${{ matrix.containers.tag == 'mcpserver' }}
         run: |
           curl -s http://localhost:8000/ \
             -X POST \
